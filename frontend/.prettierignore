@@ -1,0 +1,17 @@
+# Build outputs
+dist
+dist-ssr
+*.local
+
+# Node
+node_modules
+
+# IDE and other files
+.idea
+.vscode
+.DS_Store
+*.log
+package-lock.json
+
+# Wails bindings
+bindings

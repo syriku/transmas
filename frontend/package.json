@@ -1,0 +1,32 @@
+{
+  "name": "react-ts-latest",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build:dev": "tsc && vite build --minify false --mode development",
+    "build": "tsc && vite build --mode production",
+    "preview": "vite preview",
+    "format": "prettier --write .",
+    "check": "prettier --check ."
+  },
+  "dependencies": {
+    "@types/quill": "^2.0.14",
+    "@wailsio/runtime": "latest",
+    "i18next": "^26.2.0",
+    "quill": "^2.0.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-i18next": "^17.0.8",
+    "react-router-dom": "^7.15.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^6.0.0",
+    "prettier": "3.8.3",
+    "typescript": "^5.2.2",
+    "vite": "^8.0.5"
+  }
+}
