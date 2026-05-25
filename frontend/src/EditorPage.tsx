@@ -26,11 +26,12 @@ import {
   GetChapterMeta,
   SetCurrentChunkTranslated,
   SetCurrentChunkReviewed,
+  ExportTranslatedChapter,
 } from '../bindings/github.com/syriku/transmas/service/agentservice'
 import FloatingSettingsMenu from './widgets/FloatingSettingsMenu'
 import Quill from 'quill'
 import { useApp } from './AppContext'
-import { Events } from '@wailsio/runtime'
+import { Events, Dialogs } from '@wailsio/runtime'
 import Toast from './widgets/Toast'
 
 function EditorPage() {
@@ -338,6 +339,52 @@ function EditorPage() {
     } catch (err: any) {
       console.error('Failed to save chapter:', err)
       setToast({ message: t('failedToSave') + (err.message || String(err)), type: 'error' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleExport = async () => {
+    if (!currentChapter) return
+    setLoading(true)
+    try {
+      await updateCurrentChunkIfNeeded()
+      await SaveChapter()
+      setIsDirty(false)
+      const latestMeta = await GetChapterMeta()
+      setChapterMeta(latestMeta)
+
+      let suffix = t('exportSuffixExported')
+      if (latestMeta && totalChunks > 0) {
+        const isAllReviewed = Array.from({ length: totalChunks }, (_, i) => i + 1).every((chunk) =>
+          latestMeta.reviewedChunks?.includes(chunk),
+        )
+        if (isAllReviewed) {
+          suffix = t('exportSuffixReviewed')
+        } else {
+          const isAllTranslated = Array.from({ length: totalChunks }, (_, i) => i + 1).every(
+            (chunk) => latestMeta.translatedChunks?.includes(chunk),
+          )
+          if (isAllTranslated) {
+            suffix = t('exportSuffixTranslated')
+          }
+        }
+      }
+
+      const defaultFilename = `${currentChapter.Title.replace(/\.txt$/i, '')}${suffix}.txt`
+
+      const filePath = await Dialogs.SaveFile({
+        Title: t('export'),
+        Filename: defaultFilename,
+        Filters: [{ DisplayName: 'Text Files', Pattern: '*.txt' }],
+      })
+      if (filePath) {
+        await ExportTranslatedChapter(filePath)
+        setToast({ message: t('exportSuccess'), type: 'success' })
+      }
+    } catch (err: any) {
+      console.error('Failed to export:', err)
+      setToast({ message: t('failedToExport') + (err.message || String(err)), type: 'error' })
     } finally {
       setLoading(false)
     }
@@ -689,53 +736,102 @@ function EditorPage() {
             </h2>
           )}
         </div>
-        <button
-          onClick={handleSave}
-          disabled={loading || translating}
-          style={{
-            width: 'auto',
-            whiteSpace: 'nowrap',
-            height: '40px',
-            padding: '0 16px',
-            backgroundColor: loading || translating ? '#8fd19e' : '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: loading || translating ? 'not-allowed' : 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '14px',
-            fontWeight: '600',
-            transition: 'all 0.2s',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-            margin: 0,
-            lineHeight: '1',
-          }}
-          onMouseOver={(e) => {
-            if (!loading && !translating) e.currentTarget.style.backgroundColor = '#218838'
-          }}
-          onMouseOut={(e) => {
-            if (!loading && !translating) e.currentTarget.style.backgroundColor = '#28a745'
-          }}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            onClick={handleExport}
+            disabled={loading || translating}
+            style={{
+              width: 'auto',
+              whiteSpace: 'nowrap',
+              height: '40px',
+              padding: '0 16px',
+              backgroundColor: loading || translating ? '#8fc0eb' : '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: loading || translating ? 'not-allowed' : 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+              margin: 0,
+              lineHeight: '1',
+            }}
+            onMouseOver={(e) => {
+              if (!loading && !translating) e.currentTarget.style.backgroundColor = '#0056b3'
+            }}
+            onMouseOut={(e) => {
+              if (!loading && !translating) e.currentTarget.style.backgroundColor = '#007bff'
+            }}
           >
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-            <polyline points="17 21 17 13 7 13 7 21" />
-            <polyline points="7 3 7 8 15 8" />
-          </svg>
-          {t('save')}
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            {t('export')}
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={loading || translating}
+            style={{
+              width: 'auto',
+              whiteSpace: 'nowrap',
+              height: '40px',
+              padding: '0 16px',
+              backgroundColor: loading || translating ? '#8fd19e' : '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: loading || translating ? 'not-allowed' : 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+              margin: 0,
+              lineHeight: '1',
+            }}
+            onMouseOver={(e) => {
+              if (!loading && !translating) e.currentTarget.style.backgroundColor = '#218838'
+            }}
+            onMouseOut={(e) => {
+              if (!loading && !translating) e.currentTarget.style.backgroundColor = '#28a745'
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" />
+            </svg>
+            {t('save')}
+          </button>
+        </div>
       </div>
 
       {/* Pagination Bar */}

@@ -17,6 +17,7 @@ type WriteAgent interface {
 	UpdateOriginalChunk(newDelta *quilldelta.Delta) error
 	UpdateTranslatedChunk(newDelta *quilldelta.Delta) error
 	SaveChapter() error
+	ExportTranslatedChapter(filePath string) error
 }
 
 func (i *translateAgentImpl) UpdateOriginalChunk(newDelta *quilldelta.Delta) error {
@@ -200,4 +201,20 @@ func (i *translateAgentImpl) SaveChapter() error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
+}
+
+func (i *translateAgentImpl) ExportTranslatedChapter(filePath string) error {
+	i.chapterMu.RLock()
+	defer i.chapterMu.RUnlock()
+
+	if i.chapterFile == nil {
+		return fmt.Errorf("no valid chapter file is currently loaded")
+	}
+
+	var sb strings.Builder
+	for _, chunk := range i.translatedChunks {
+		sb.WriteString(getDeltaText(chunk))
+	}
+
+	return os.WriteFile(filePath, []byte(sb.String()), 0644)
 }

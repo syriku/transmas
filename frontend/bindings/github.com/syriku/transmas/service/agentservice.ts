@@ -44,6 +44,10 @@ export function DestroyReusableTranslator(handle: number): $CancellablePromise<v
     return $Call.ByID(3949364470, handle);
 }
 
+export function ExportTranslatedChapter(filePath: string): $CancellablePromise<void> {
+    return $Call.ByID(516328102, filePath);
+}
+
 export function GetAiConfig(): $CancellablePromise<{ [_ in string]?: api$0.UserConfig }> {
     return $Call.ByID(356686743).then(($result: any) => {
         return $$createType1($result);

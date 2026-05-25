@@ -289,3 +289,14 @@ func (a *AgentService) GetChapterStatus(projectName string, chapterOrder uint) (
 	}
 	return agent.GetChapterStatus(projectName, chapterOrder)
 }
+
+func (a *AgentService) ExportTranslatedChapter(filePath string) error {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return fmt.Errorf("log in first please")
+	}
+	return agent.ExportTranslatedChapter(filePath)
+}
