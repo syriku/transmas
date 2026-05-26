@@ -659,15 +659,16 @@ function EditorPage() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
+        justifyContent: 'flex-start',
+        height: '100vh',
         width: '100vw',
         padding: '20px 40px',
-        paddingTop: '70px',
+        paddingTop: '80px',
         boxSizing: 'border-box',
         backgroundColor: '#f5f7fa',
         color: '#333',
         position: 'relative',
+        overflow: 'hidden',
       }}
     >
       <div
@@ -841,8 +842,8 @@ function EditorPage() {
           alignItems: 'center',
           justifyContent: 'center',
           gap: '20px',
-          marginBottom: '20px',
-          marginTop: '20px',
+          marginBottom: '16px',
+          marginTop: '10px',
           width: '100%',
         }}
       >
@@ -968,6 +969,9 @@ function EditorPage() {
         </button>
       </div>
 
+      {/* Horizontal divider to separate sticky header and scroll area */}
+      <div style={{ width: '100%', borderBottom: '1px solid #e2e8f0', marginBottom: '16px' }} />
+
       {sourceQuill && targetQuill && isTranslated && sourceLinesCount !== targetLinesCount && (
         <div
           style={{
@@ -975,12 +979,14 @@ function EditorPage() {
             color: '#d32f2f',
             padding: '12px 24px',
             borderRadius: '8px',
-            marginBottom: '20px',
+            marginBottom: '16px',
             fontWeight: '600',
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
             border: '1px solid #ffcdd2',
+            width: '100%',
+            boxSizing: 'border-box',
           }}
         >
           ⚠️{' '}
@@ -998,8 +1004,12 @@ function EditorPage() {
           gap: '30px',
           width: '100%',
           justifyContent: 'center',
-          marginBottom: '30px',
           position: 'relative',
+          flex: 1,
+          overflowY: 'auto',
+          paddingRight: '8px',
+          paddingBottom: '60px',
+          boxSizing: 'border-box',
         }}
       >
         <AlignmentLines
