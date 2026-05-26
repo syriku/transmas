@@ -256,6 +256,13 @@ function EditorPage() {
     try {
       const meta = await GetChapterMeta()
       setChapterMeta(meta)
+      const currentIsReviewed = !!meta?.reviewedChunks?.includes(chunkPage)
+      const currentIsTranslated = !!meta?.translatedChunks?.includes(chunkPage)
+      if (currentIsReviewed && !currentIsTranslated) {
+        await SetCurrentChunkTranslated(true)
+        const updatedMeta = await GetChapterMeta()
+        setChapterMeta(updatedMeta)
+      }
     } catch (err) {
       console.error('Failed to fetch chapter meta:', err)
     }
@@ -281,6 +288,17 @@ function EditorPage() {
       await fetchChapterMeta()
     } catch (err: any) {
       console.error('Failed to set reviewed status:', err)
+      setToast({ message: t('failedToSave') + (err.message || String(err)), type: 'error' })
+    }
+  }
+
+  const handleResetStatus = async () => {
+    try {
+      await SetCurrentChunkReviewed(false)
+      await SetCurrentChunkTranslated(false)
+      await fetchChapterMeta()
+    } catch (err: any) {
+      console.error('Failed to reset status:', err)
       setToast({ message: t('failedToSave') + (err.message || String(err)), type: 'error' })
     }
   }
@@ -1285,6 +1303,7 @@ function EditorPage() {
         reviewed={!!chapterMeta?.reviewedChunks?.includes(chunkPage)}
         onTranslatedChange={handleTranslatedChange}
         onReviewedChange={handleReviewedChange}
+        onResetStatus={handleResetStatus}
         detailed={detailed}
         onDetailedChange={setDetailed}
       />

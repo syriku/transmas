@@ -119,6 +119,8 @@ const resources = {
       exportSuffixTranslated: '_translated',
       exportSuffixReviewed: '_reviewed',
       exportSuffixExported: '_exported',
+      resetStatus: 'Reset Status',
+      status: 'Status',
     },
   },
   'zh-CN': {
@@ -236,6 +238,8 @@ const resources = {
       exportSuffixTranslated: '_已翻译',
       exportSuffixReviewed: '_已校对',
       exportSuffixExported: '_导出',
+      resetStatus: '重置状态',
+      status: '状态',
     },
   },
 }
