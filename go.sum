@@ -111,10 +111,10 @@ github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXf
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
-github.com/syriku/aisdk v1.0.0-alpha.10 h1:MsnO91HDxVnX3kEhZxZoP/qkQ1jRKTBnBJ4737Qlnm0=
-github.com/syriku/aisdk v1.0.0-alpha.10/go.mod h1:KBB9bvetXbZ2msZCW4yRZ0E3kBu8yKqjzJIaixuxYSo=
-github.com/syriku/quill-delta v1.0.0-alpha.1 h1:spwMRJO7QMjRf09GCVazHftFTfuiw0VSfLD+QKSC5+E=
-github.com/syriku/quill-delta v1.0.0-alpha.1/go.mod h1:QKFZRVjJkwJX+G5/K1LnEVZZK/EGAoDFl/NkxMKWPBo=
+github.com/syriku/aisdk v1.0.0-alpha.11 h1:IuMlpJCwWX4iGEf0xHPYUazZhkcHwi9rI/qfyJCrr24=
+github.com/syriku/aisdk v1.0.0-alpha.11/go.mod h1:GCqF0iyfmabEkuACIpza9UioaIgHhW/lLaPhGIUdOzE=
+github.com/syriku/quill-delta v1.0.0-alpha.2 h1:CLVagWnQ7Dx6pVOQPObulKIP1ZtQj0avyzrl8YDHsjM=
+github.com/syriku/quill-delta v1.0.0-alpha.2/go.mod h1:PkHNapW6+RPKv+pHgfDfpI9cWmD/q0V781ATd5qYC+w=
 github.com/wailsapp/wails/v3 v3.0.0-alpha.91 h1:hNbysesX5Q+d9+CkDjgTmt1rHDFp5vCDT6UqrE0fFfg=
 github.com/wailsapp/wails/v3 v3.0.0-alpha.91/go.mod h1:5exzAEkyvbCcdowFevzZf23SYEEvmf+pkx7gg1gOR0Q=
 github.com/wailsapp/wails/webview2 v1.0.24 h1:uULnjCSaRfMlU84mS3kjLgPsRosEOIusVK1nFOHZHzs=
