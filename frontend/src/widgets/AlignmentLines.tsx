@@ -14,6 +14,7 @@ interface LineCoordinates {
   y1: number
   x2: number
   y2: number
+  isDashed?: boolean
 }
 
 const AlignmentLines: React.FC<AlignmentLinesProps> = ({
@@ -89,7 +90,13 @@ const AlignmentLines: React.FC<AlignmentLinesProps> = ({
           scrollTop +
           (targetStartBounds.top + targetEndBounds.top + targetEndBounds.height) / 2
 
-        newLines.push({ x1, y1, x2, y2 })
+        newLines.push({
+          x1,
+          y1,
+          x2,
+          y2,
+          isDashed: sBlock.isEmpty && tBlock.isEmpty,
+        })
       }
 
       setLines(newLines)
@@ -145,6 +152,7 @@ const AlignmentLines: React.FC<AlignmentLinesProps> = ({
             stroke="#b3d4ff"
             strokeWidth="2"
             strokeOpacity="0.6"
+            strokeDasharray={line.isDashed ? '4 4' : undefined}
           />
         )
       })}
