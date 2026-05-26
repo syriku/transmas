@@ -98,7 +98,7 @@ for arg in "$@"; do
         *) ARGS="$ARGS $arg" ;;
     esac
 done
-exec zig cc -target x86_64-windows-gnu $ARGS
+exec zig cc -fno-sanitize=all -target x86_64-windows-gnu $ARGS
 ZIGWRAP
 RUN chmod +x /usr/local/bin/zcc-windows-amd64
 
