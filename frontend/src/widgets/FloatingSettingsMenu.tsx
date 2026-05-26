@@ -5,6 +5,7 @@ import {
   GetAiConfig,
 } from '../../bindings/github.com/syriku/transmas/service/agentservice'
 import { GetModels } from '../../bindings/github.com/syriku/transmas/service/systemservice'
+import DiffViewerModal from './DiffViewerModal'
 
 interface Props {
   projectName: string | null
@@ -17,8 +18,11 @@ interface Props {
   reviewed: boolean
   onTranslatedChange: (completed: boolean) => Promise<void>
   onReviewedChange: (completed: boolean) => Promise<void>
+  onResetStatus: () => Promise<void>
   detailed: boolean
   onDetailedChange: (detailed: boolean) => void
+  recordedTranslationText: string | null
+  getCurrentTranslationText: () => string
 }
 
 const FloatingSettingsMenu: React.FC<Props> = ({
@@ -32,15 +36,57 @@ const FloatingSettingsMenu: React.FC<Props> = ({
   reviewed,
   onTranslatedChange,
   onReviewedChange,
+  onResetStatus,
   detailed,
   onDetailedChange,
+  recordedTranslationText,
+  getCurrentTranslationText,
 }) => {
   const { t } = useTranslation()
   const [showFloatingMenu, setShowFloatingMenu] = useState(false)
   const [models, setModels] = useState<string[]>([])
   const [fetchingModels, setFetchingModels] = useState(false)
   const [modelError, setModelError] = useState<string>('')
+  const [hoverTranslateDone, setHoverTranslateDone] = useState(false)
+  const [hoverReviewDone, setHoverReviewDone] = useState(false)
+  const [hoverReset, setHoverReset] = useState(false)
+  const [showDiffModal, setShowDiffModal] = useState(false)
   const floatingMenuRef = useRef<HTMLDivElement>(null)
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const finalTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+      if (finalTimeoutRef.current) clearTimeout(finalTimeoutRef.current)
+    }
+  }, [])
+
+  const handleReviewHoverEnter = () => {
+    setHoverReviewDone(true)
+    if (recordedTranslationText !== null) {
+      hoverTimeoutRef.current = setTimeout(() => {
+        const currentText = getCurrentTranslationText()
+        if (recordedTranslationText !== currentText) {
+          finalTimeoutRef.current = setTimeout(() => {
+            setShowDiffModal(true)
+          }, 100)
+        }
+      }, 700)
+    }
+  }
+
+  const handleReviewHoverLeave = () => {
+    setHoverReviewDone(false)
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+      hoverTimeoutRef.current = null
+    }
+    if (finalTimeoutRef.current) {
+      clearTimeout(finalTimeoutRef.current)
+      finalTimeoutRef.current = null
+    }
+  }
 
   const fetchModels = async () => {
     if (!projectName) return
@@ -135,6 +181,7 @@ const FloatingSettingsMenu: React.FC<Props> = ({
             animation: 'popup-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
             transformOrigin: 'bottom right',
             color: '#333',
+            boxSizing: 'border-box',
           }}
         >
           <style>{`
@@ -320,112 +367,193 @@ const FloatingSettingsMenu: React.FC<Props> = ({
               {t('status', { defaultValue: 'STATUS' })}
             </span>
 
-            <div
-              onClick={() => onTranslatedChange(!translated)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                backgroundColor: translated ? 'rgba(40, 167, 69, 0.08)' : 'rgba(0, 0, 0, 0.02)',
-                border: translated
-                  ? '1px solid rgba(40, 167, 69, 0.3)'
-                  : '1px solid rgba(0, 0, 0, 0.05)',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <span
+            {!translated && !reviewed && (
+              <button
+                type="button"
+                onMouseEnter={() => setHoverTranslateDone(true)}
+                onMouseLeave={() => setHoverTranslateDone(false)}
+                onClick={() => onTranslatedChange(true)}
                 style={{
+                  width: '100%',
+                  height: '40px',
+                  margin: 0,
+                  padding: '0 16px',
+                  boxSizing: 'border-box',
+                  background: hoverTranslateDone
+                    ? 'linear-gradient(135deg, #059669 0%, #047857 100%)'
+                    : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
                   fontSize: '14px',
-                  fontWeight: '500',
-                  color: translated ? '#1e7e34' : '#555',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  boxShadow: hoverTranslateDone
+                    ? '0 6px 16px rgba(16, 185, 129, 0.3)'
+                    : '0 4px 12px rgba(16, 185, 129, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transform: hoverTranslateDone ? 'translateY(-1px)' : 'none',
+                  transition: 'all 0.2s ease',
                 }}
               >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
                 {t('translatedCompleted')}
-              </span>
-              <div
-                style={{
-                  width: '36px',
-                  height: '20px',
-                  borderRadius: '10px',
-                  backgroundColor: translated ? '#28a745' : '#ccc',
-                  position: 'relative',
-                  transition: 'background-color 0.2s',
-                }}
-              >
-                <div
-                  style={{
-                    width: '16px',
-                    height: '16px',
-                    borderRadius: '50%',
-                    backgroundColor: 'white',
-                    position: 'absolute',
-                    top: '2px',
-                    left: translated ? '18px' : '2px',
-                    transition: 'left 0.2s',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                  }}
-                />
-              </div>
-            </div>
+              </button>
+            )}
 
-            <div
-              onClick={() => {
-                if (translated) {
-                  onReviewedChange(!reviewed)
-                }
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                backgroundColor: reviewed ? 'rgba(0, 123, 255, 0.08)' : 'rgba(0, 0, 0, 0.02)',
-                border: reviewed
-                  ? '1px solid rgba(0, 123, 255, 0.3)'
-                  : '1px solid rgba(0, 0, 0, 0.05)',
-                cursor: translated ? 'pointer' : 'not-allowed',
-                opacity: translated ? 1 : 0.5,
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: reviewed ? '#0056b3' : '#555',
-                }}
-              >
-                {t('reviewedCompleted')}
-              </span>
-              <div
-                style={{
-                  width: '36px',
-                  height: '20px',
-                  borderRadius: '10px',
-                  backgroundColor: reviewed ? '#007bff' : '#ccc',
-                  position: 'relative',
-                  transition: 'background-color 0.2s',
-                }}
-              >
-                <div
+            {translated && !reviewed && (
+              <>
+                <button
+                  type="button"
+                  onMouseEnter={handleReviewHoverEnter}
+                  onMouseLeave={handleReviewHoverLeave}
+                  onClick={() => onReviewedChange(true)}
                   style={{
-                    width: '16px',
-                    height: '16px',
-                    borderRadius: '50%',
-                    backgroundColor: 'white',
-                    position: 'absolute',
-                    top: '2px',
-                    left: reviewed ? '18px' : '2px',
-                    transition: 'left 0.2s',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                    width: '100%',
+                    height: '40px',
+                    margin: 0,
+                    padding: '0 16px',
+                    boxSizing: 'border-box',
+                    background: hoverReviewDone
+                      ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
+                      : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    boxShadow: hoverReviewDone
+                      ? '0 6px 16px rgba(59, 130, 246, 0.3)'
+                      : '0 4px 12px rgba(59, 130, 246, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    transform: hoverReviewDone ? 'translateY(-1px)' : 'none',
+                    transition: 'all 0.2s ease',
                   }}
-                />
-              </div>
-            </div>
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                    <polyline points="7.5 11.5 10.5 14.5 16.5 8.5" />
+                  </svg>
+                  {t('reviewedCompleted')}
+                </button>
+                <button
+                  type="button"
+                  onMouseEnter={() => setHoverReset(true)}
+                  onMouseLeave={() => setHoverReset(false)}
+                  onClick={() => onResetStatus()}
+                  style={{
+                    width: '100%',
+                    height: '40px',
+                    margin: 0,
+                    padding: '0 16px',
+                    boxSizing: 'border-box',
+                    backgroundColor: hoverReset ? 'rgba(239, 68, 68, 0.08)' : 'transparent',
+                    color: hoverReset ? '#dc2626' : '#ef4444',
+                    border: hoverReset ? '2px dashed #dc2626' : '2px dashed rgba(239, 68, 68, 0.6)',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    transform: hoverReset ? 'translateY(-1px)' : 'none',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                  </svg>
+                  {t('resetStatus')}
+                </button>
+              </>
+            )}
+
+            {reviewed && (
+              <button
+                type="button"
+                onMouseEnter={() => setHoverReset(true)}
+                onMouseLeave={() => setHoverReset(false)}
+                onClick={() => onResetStatus()}
+                style={{
+                  width: '100%',
+                  height: '40px',
+                  margin: 0,
+                  padding: '0 16px',
+                  boxSizing: 'border-box',
+                  backgroundColor: hoverReset ? 'rgba(239, 68, 68, 0.08)' : 'transparent',
+                  color: hoverReset ? '#dc2626' : '#ef4444',
+                  border: hoverReset ? '2px dashed #dc2626' : '2px dashed rgba(239, 68, 68, 0.6)',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transform: hoverReset ? 'translateY(-1px)' : 'none',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+                {t('resetStatus')}
+              </button>
+            )}
 
             <div
               onClick={() => onDetailedChange(!detailed)}
@@ -621,6 +749,15 @@ const FloatingSettingsMenu: React.FC<Props> = ({
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
       </button>
+
+      {/* Diff Viewer Modal */}
+      {showDiffModal && (
+        <DiffViewerModal
+          originalText={recordedTranslationText || ''}
+          currentText={getCurrentTranslationText()}
+          onClose={() => setShowDiffModal(false)}
+        />
+      )}
     </div>
   )
 }

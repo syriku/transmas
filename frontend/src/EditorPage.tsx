@@ -66,6 +66,7 @@ function EditorPage() {
   const [translatorHandle, setTranslatorHandle] = useState<number | null>(null)
   const [chapterMeta, setChapterMeta] = useState<any>(null)
   const [detailed, setDetailed] = useState(false)
+  const [recordedTranslationText, setRecordedTranslationText] = useState<string | null>(null)
 
   const activeStreamHandleRef = useRef<string | null>(null)
   const unsubscribeRef = useRef<(() => void) | null>(null)
@@ -250,12 +251,29 @@ function EditorPage() {
       }
       setInitialTargetDelta(targetQuill.getContents())
     }
+    setRecordedTranslationText(null)
   }
 
   const fetchChapterMeta = async () => {
     try {
       const meta = await GetChapterMeta()
       setChapterMeta(meta)
+      const currentIsReviewed = !!meta?.reviewedChunks?.includes(chunkPage)
+      const currentIsTranslated = !!meta?.translatedChunks?.includes(chunkPage)
+      if (currentIsReviewed && !currentIsTranslated) {
+        await SetCurrentChunkTranslated(true)
+        const updatedMeta = await GetChapterMeta()
+        setChapterMeta(updatedMeta)
+      }
+
+      if (currentIsTranslated && !currentIsReviewed && targetQuill) {
+        setRecordedTranslationText((prev) => {
+          if (prev === null) {
+            return targetQuill.getText()
+          }
+          return prev
+        })
+      }
     } catch (err) {
       console.error('Failed to fetch chapter meta:', err)
     }
@@ -267,6 +285,9 @@ function EditorPage() {
       const currentlyReviewed = !!chapterMeta?.reviewedChunks?.includes(chunkPage)
       if (!completed && currentlyReviewed) {
         await SetCurrentChunkReviewed(false)
+      }
+      if (completed && targetQuill) {
+        setRecordedTranslationText(targetQuill.getText())
       }
       await fetchChapterMeta()
     } catch (err: any) {
@@ -281,6 +302,17 @@ function EditorPage() {
       await fetchChapterMeta()
     } catch (err: any) {
       console.error('Failed to set reviewed status:', err)
+      setToast({ message: t('failedToSave') + (err.message || String(err)), type: 'error' })
+    }
+  }
+
+  const handleResetStatus = async () => {
+    try {
+      await SetCurrentChunkReviewed(false)
+      await SetCurrentChunkTranslated(false)
+      await fetchChapterMeta()
+    } catch (err: any) {
+      console.error('Failed to reset status:', err)
       setToast({ message: t('failedToSave') + (err.message || String(err)), type: 'error' })
     }
   }
@@ -1285,8 +1317,11 @@ function EditorPage() {
         reviewed={!!chapterMeta?.reviewedChunks?.includes(chunkPage)}
         onTranslatedChange={handleTranslatedChange}
         onReviewedChange={handleReviewedChange}
+        onResetStatus={handleResetStatus}
         detailed={detailed}
         onDetailedChange={setDetailed}
+        recordedTranslationText={recordedTranslationText}
+        getCurrentTranslationText={() => targetQuill?.getText() || ''}
       />
     </div>
   )
