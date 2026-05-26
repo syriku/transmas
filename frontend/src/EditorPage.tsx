@@ -66,6 +66,7 @@ function EditorPage() {
   const [translatorHandle, setTranslatorHandle] = useState<number | null>(null)
   const [chapterMeta, setChapterMeta] = useState<any>(null)
   const [detailed, setDetailed] = useState(false)
+  const [recordedTranslationText, setRecordedTranslationText] = useState<string | null>(null)
 
   const activeStreamHandleRef = useRef<string | null>(null)
   const unsubscribeRef = useRef<(() => void) | null>(null)
@@ -250,6 +251,7 @@ function EditorPage() {
       }
       setInitialTargetDelta(targetQuill.getContents())
     }
+    setRecordedTranslationText(null)
   }
 
   const fetchChapterMeta = async () => {
@@ -263,6 +265,15 @@ function EditorPage() {
         const updatedMeta = await GetChapterMeta()
         setChapterMeta(updatedMeta)
       }
+
+      if (currentIsTranslated && !currentIsReviewed && targetQuill) {
+        setRecordedTranslationText((prev) => {
+          if (prev === null) {
+            return targetQuill.getText()
+          }
+          return prev
+        })
+      }
     } catch (err) {
       console.error('Failed to fetch chapter meta:', err)
     }
@@ -274,6 +285,9 @@ function EditorPage() {
       const currentlyReviewed = !!chapterMeta?.reviewedChunks?.includes(chunkPage)
       if (!completed && currentlyReviewed) {
         await SetCurrentChunkReviewed(false)
+      }
+      if (completed && targetQuill) {
+        setRecordedTranslationText(targetQuill.getText())
       }
       await fetchChapterMeta()
     } catch (err: any) {
@@ -1306,6 +1320,8 @@ function EditorPage() {
         onResetStatus={handleResetStatus}
         detailed={detailed}
         onDetailedChange={setDetailed}
+        recordedTranslationText={recordedTranslationText}
+        getCurrentTranslationText={() => targetQuill?.getText() || ''}
       />
     </div>
   )

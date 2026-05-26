@@ -5,6 +5,7 @@ import {
   GetAiConfig,
 } from '../../bindings/github.com/syriku/transmas/service/agentservice'
 import { GetModels } from '../../bindings/github.com/syriku/transmas/service/systemservice'
+import DiffViewerModal from './DiffViewerModal'
 
 interface Props {
   projectName: string | null
@@ -20,6 +21,8 @@ interface Props {
   onResetStatus: () => Promise<void>
   detailed: boolean
   onDetailedChange: (detailed: boolean) => void
+  recordedTranslationText: string | null
+  getCurrentTranslationText: () => string
 }
 
 const FloatingSettingsMenu: React.FC<Props> = ({
@@ -36,6 +39,8 @@ const FloatingSettingsMenu: React.FC<Props> = ({
   onResetStatus,
   detailed,
   onDetailedChange,
+  recordedTranslationText,
+  getCurrentTranslationText,
 }) => {
   const { t } = useTranslation()
   const [showFloatingMenu, setShowFloatingMenu] = useState(false)
@@ -45,7 +50,43 @@ const FloatingSettingsMenu: React.FC<Props> = ({
   const [hoverTranslateDone, setHoverTranslateDone] = useState(false)
   const [hoverReviewDone, setHoverReviewDone] = useState(false)
   const [hoverReset, setHoverReset] = useState(false)
+  const [showDiffModal, setShowDiffModal] = useState(false)
   const floatingMenuRef = useRef<HTMLDivElement>(null)
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const finalTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+      if (finalTimeoutRef.current) clearTimeout(finalTimeoutRef.current)
+    }
+  }, [])
+
+  const handleReviewHoverEnter = () => {
+    setHoverReviewDone(true)
+    if (recordedTranslationText !== null) {
+      hoverTimeoutRef.current = setTimeout(() => {
+        const currentText = getCurrentTranslationText()
+        if (recordedTranslationText !== currentText) {
+          finalTimeoutRef.current = setTimeout(() => {
+            setShowDiffModal(true)
+          }, 100)
+        }
+      }, 700)
+    }
+  }
+
+  const handleReviewHoverLeave = () => {
+    setHoverReviewDone(false)
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+      hoverTimeoutRef.current = null
+    }
+    if (finalTimeoutRef.current) {
+      clearTimeout(finalTimeoutRef.current)
+      finalTimeoutRef.current = null
+    }
+  }
 
   const fetchModels = async () => {
     if (!projectName) return
@@ -379,8 +420,8 @@ const FloatingSettingsMenu: React.FC<Props> = ({
               <>
                 <button
                   type="button"
-                  onMouseEnter={() => setHoverReviewDone(true)}
-                  onMouseLeave={() => setHoverReviewDone(false)}
+                  onMouseEnter={handleReviewHoverEnter}
+                  onMouseLeave={handleReviewHoverLeave}
                   onClick={() => onReviewedChange(true)}
                   style={{
                     width: '100%',
@@ -708,6 +749,15 @@ const FloatingSettingsMenu: React.FC<Props> = ({
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
       </button>
+
+      {/* Diff Viewer Modal */}
+      {showDiffModal && (
+        <DiffViewerModal
+          originalText={recordedTranslationText || ''}
+          currentText={getCurrentTranslationText()}
+          onClose={() => setShowDiffModal(false)}
+        />
+      )}
     </div>
   )
 }

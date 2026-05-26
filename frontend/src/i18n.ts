@@ -121,6 +121,7 @@ const resources = {
       exportSuffixExported: '_exported',
       resetStatus: 'Reset Status',
       status: 'Status',
+      translationDiff: 'Translation Diff',
     },
   },
   'zh-CN': {
@@ -240,6 +241,7 @@ const resources = {
       exportSuffixExported: '_导出',
       resetStatus: '重置状态',
       status: '状态',
+      translationDiff: '翻译对比',
     },
   },
 }
