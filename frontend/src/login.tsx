@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useApp } from './AppContext'
@@ -9,7 +9,13 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
-  const { login } = useApp()
+  const { login, username: loggedInUser } = useApp()
+
+  useEffect(() => {
+    if (loggedInUser) {
+      navigate('/home', { replace: true })
+    }
+  }, [loggedInUser, navigate])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
