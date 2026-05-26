@@ -81,6 +81,12 @@ function EditorPage() {
   }, [projectName])
 
   useEffect(() => {
+    if (editorContainerRef.current) {
+      editorContainerRef.current.scrollTop = 0
+    }
+  }, [chunkPage])
+
+  useEffect(() => {
     let activeHandle: number | null = null
 
     const initHandle = async () => {

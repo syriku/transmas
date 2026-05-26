@@ -23,10 +23,12 @@ const AlignmentLines: React.FC<AlignmentLinesProps> = ({
   containerRef,
 }) => {
   const [lines, setLines] = useState<LineCoordinates[]>([])
+  const [svgHeight, setSvgHeight] = useState<number>(0)
 
   useEffect(() => {
     if (!isMatched || !sourceQuill || !targetQuill || !containerRef.current) {
       setLines([])
+      setSvgHeight(0)
       return
     }
 
@@ -36,6 +38,7 @@ const AlignmentLines: React.FC<AlignmentLinesProps> = ({
 
       if (sourceBlocks.length !== targetBlocks.length) {
         setLines([])
+        setSvgHeight(0)
         return
       }
 
@@ -48,8 +51,13 @@ const AlignmentLines: React.FC<AlignmentLinesProps> = ({
       const sourceEditorRect = sourceEditorNode.getBoundingClientRect()
       const targetEditorRect = targetEditorNode.getBoundingClientRect()
 
+      // Calculate SVG height based on the taller editor
+      const contentHeight = Math.max(sourceEditorRect.height, targetEditorRect.height)
+      setSvgHeight(contentHeight)
+
       const x1 = sourceEditorRect.right - containerRect.left
       const x2 = targetEditorRect.left - containerRect.left
+      const scrollTop = containerRef.current!.scrollTop
 
       for (let i = 0; i < sourceBlocks.length; i++) {
         const sBlock = sourceBlocks[i]
@@ -73,10 +81,12 @@ const AlignmentLines: React.FC<AlignmentLinesProps> = ({
         const y1 =
           sourceEditorRect.top -
           containerRect.top +
+          scrollTop +
           (sourceStartBounds.top + sourceEndBounds.top + sourceEndBounds.height) / 2
         const y2 =
           targetEditorRect.top -
           containerRect.top +
+          scrollTop +
           (targetStartBounds.top + targetEndBounds.top + targetEndBounds.height) / 2
 
         newLines.push({ x1, y1, x2, y2 })
@@ -120,7 +130,7 @@ const AlignmentLines: React.FC<AlignmentLinesProps> = ({
         top: 0,
         left: 0,
         width: '100%',
-        height: '100%',
+        height: svgHeight ? `${svgHeight}px` : '100%',
         pointerEvents: 'none',
         zIndex: 10,
       }}
