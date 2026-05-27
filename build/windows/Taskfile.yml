@@ -76,7 +76,7 @@ tasks:
       - docker run --rm -v "{{.ROOT_DIR}}:/app" {{.GO_CACHE_MOUNT}} {{.REPLACE_MOUNTS}} -e APP_NAME="{{.APP_NAME}}" {{if .EXTRA_TAGS}}-e EXTRA_TAGS="{{.EXTRA_TAGS}}"{{end}} {{.CROSS_IMAGE}} windows {{.DOCKER_ARCH}}
       - docker run --rm -v "{{.ROOT_DIR}}:/app" alpine chown -R $(id -u):$(id -g) /app/bin
       - rm -f *.syso
-      - cp bin/transmas-windows-amd64.exe bin/transmas.exe
+      - cp bin/{{.APP_NAME}}-windows-amd64.exe bin/{{.APP_NAME}}.exe
     vars:
       DOCKER_ARCH: '{{.ARCH | default "amd64"}}'
       # Mount Go module cache for faster builds

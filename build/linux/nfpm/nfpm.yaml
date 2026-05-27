@@ -3,28 +3,26 @@
 #
 # The lines below are called `modelines`. See `:help modeline`
 
-name: "transmas"
+name: "翻译大师"
 arch: ${GOARCH}
 platform: "linux"
-version: "0.1.0"
+version: "1.0.0-alpha.11"
 section: "default"
 priority: "extra"
 maintainer: ${GIT_COMMITTER_NAME} <${GIT_COMMITTER_EMAIL}>
-description: "A transmas application"
-vendor: "My Company"
+description: "A program that does X"
+vendor: "github/syriku"
 homepage: "https://wails.io"
 license: "MIT"
 release: "1"
 
 contents:
-  - src: "./bin/transmas"
-    dst: "/usr/local/bin/transmas"
+  - src: "./bin/翻译大师"
+    dst: "/usr/local/bin/翻译大师"
   - src: "./build/appicon.png"
-    dst: "/usr/share/icons/hicolor/128x128/apps/transmas.png"
-  - src: "./build/linux/transmas.desktop"
-    dst: "/usr/share/applications/transmas.desktop"
-  - src: "./licenses"
-    dst: "/usr/share/doc/transmas/licenses"
+    dst: "/usr/share/icons/hicolor/128x128/apps/翻译大师.png"
+  - src: "./build/linux/翻译大师.desktop"
+    dst: "/usr/share/applications/翻译大师.desktop"
 
 # Default dependencies for Debian 12/Ubuntu 22.04+ with WebKit 4.1
 depends:
@@ -38,8 +36,8 @@ overrides:
     depends:
       - gtk3
       - webkit2gtk4.1
-
-  # Arch Linux packages (WebKit 4.1)
+  
+  # Arch Linux packages (WebKit 4.1)  
   archlinux:
     depends:
       - gtk3

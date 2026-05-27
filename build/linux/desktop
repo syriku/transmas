@@ -1,13 +1,13 @@
 [Desktop Entry]
 Version=1.0
-Name=My Product
-Comment=A transmas application
+Name=Transmas
+Comment=A program that does X
 # The Exec line includes %u to pass the URL to the application
-Exec=/usr/local/bin/transmas %u
+Exec=/usr/local/bin/翻译大师 %u
 Terminal=false
 Type=Application
-Icon=transmas
+Icon=翻译大师
 Categories=Utility;
-StartupWMClass=transmas
+StartupWMClass=翻译大师
 
  
