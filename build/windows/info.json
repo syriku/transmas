@@ -1,11 +1,11 @@
 {
 	"fixed": {
-		"file_version": "1.0.0-alpha.11"
+		"file_version": "1.0.0"
 	},
 	"info": {
 		"0000": {
-			"ProductVersion": "1.0.0-alpha.11",
-			"CompanyName": "github/syriku",
+			"ProductVersion": "1.0.0",
+			"CompanyName": "transmas",
 			"FileDescription": "A program that does X",
 			"LegalCopyright": "(c) 2025, My Company",
 			"ProductName": "Transmas",

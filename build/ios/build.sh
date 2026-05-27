@@ -4,8 +4,8 @@ set -e
 # Build configuration
 APP_NAME="翻译大师"
 BUNDLE_ID="com.github.syriku.transmas"
-VERSION="1.0.0-alpha.11"
-BUILD_NUMBER="1.0.0-alpha.11"
+VERSION="1.0.0"
+BUILD_NUMBER="1.0.0"
 BUILD_DIR="build/ios"
 TARGET="simulator"
 

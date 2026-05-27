@@ -18,6 +18,7 @@ FROM golang:1.25-bookworm
 ARG TARGETARCH
 
 # Install base tools, GCC, and GTK/WebKit dev packages
+RUN sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl xz-utils nodejs npm pkg-config gcc libc6-dev \
     libgtk-3-dev libwebkit2gtk-4.1-dev \

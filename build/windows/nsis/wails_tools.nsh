@@ -8,13 +8,13 @@
     !define INFO_PROJECTNAME "翻译大师"
 !endif
 !ifndef INFO_COMPANYNAME
-    !define INFO_COMPANYNAME "github/syriku"
+    !define INFO_COMPANYNAME "transmas"
 !endif
 !ifndef INFO_PRODUCTNAME
     !define INFO_PRODUCTNAME "Transmas"
 !endif
 !ifndef INFO_PRODUCTVERSION
-    !define INFO_PRODUCTVERSION "1.0.0-alpha.11"
+    !define INFO_PRODUCTVERSION "1.0.0"
 !endif
 !ifndef INFO_COPYRIGHT
     !define INFO_COPYRIGHT "(c) 2025, My Company"
