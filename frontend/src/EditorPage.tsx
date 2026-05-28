@@ -156,6 +156,48 @@ function EditorPage() {
   }, [sourceQuill, targetQuill])
 
   useEffect(() => {
+    if (!sourceQuill || !targetQuill) return
+
+    const syncEditorHeights = () => {
+      const sourceRoot = sourceQuill.root
+      const targetRoot = targetQuill.root
+      if (!sourceRoot || !targetRoot) return
+
+      // Reset min-height to measure natural content heights
+      sourceRoot.style.minHeight = ''
+      targetRoot.style.minHeight = ''
+
+      // Force reflow
+      void sourceRoot.scrollHeight
+
+      const sourceH = sourceRoot.scrollHeight
+      const targetH = targetRoot.scrollHeight
+      const maxH = Math.max(sourceH, targetH)
+
+      sourceRoot.style.minHeight = `${maxH}px`
+      targetRoot.style.minHeight = `${maxH}px`
+    }
+
+    // Initial sync with delay for DOM to settle
+    const initialTimer = setTimeout(syncEditorHeights, 50)
+
+    const handleChange = () => setTimeout(syncEditorHeights, 0)
+
+    sourceQuill.on('text-change', handleChange)
+    targetQuill.on('text-change', handleChange)
+    window.addEventListener('resize', handleChange)
+
+    return () => {
+      clearTimeout(initialTimer)
+      sourceQuill.off('text-change', handleChange)
+      targetQuill.off('text-change', handleChange)
+      window.removeEventListener('resize', handleChange)
+      if (sourceQuill.root) sourceQuill.root.style.minHeight = ''
+      if (targetQuill.root) targetQuill.root.style.minHeight = ''
+    }
+  }, [sourceQuill, targetQuill])
+
+  useEffect(() => {
     const syncChapter = async () => {
       if (
         projectName &&

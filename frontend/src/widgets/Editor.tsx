@@ -59,10 +59,14 @@ const Editor = forwardRef<Quill | null, EditorProps>(
       if (!container) return
 
       const editorContainer = container.ownerDocument.createElement('div')
-      editorContainer.style.flex = '1'
       editorContainer.style.display = 'flex'
       editorContainer.style.flexDirection = 'column'
-      editorContainer.style.minHeight = '0' // Important for flex children
+      if (autoExpand) {
+        editorContainer.style.flex = '1 0 auto'
+      } else {
+        editorContainer.style.flex = '1'
+        editorContainer.style.minHeight = '0'
+      }
       container.appendChild(editorContainer)
 
       const quillInstance = new Quill(editorContainer, {
@@ -122,23 +126,21 @@ const Editor = forwardRef<Quill | null, EditorProps>(
         <style>
           {`
             .ql-container.ql-snow {
-              flex: 1;
               display: flex;
               flex-direction: column;
               border: none !important;
               border-radius: inherit !important;
               background: transparent !important;
-              ${autoExpand ? 'overflow: visible;' : 'overflow: hidden;'}
+              ${autoExpand ? 'flex: 1 0 auto; overflow: visible;' : 'flex: 1; overflow: hidden;'}
             }
             .ql-container.ql-snow .ql-editor {
-              flex: 1;
-              overflow-y: ${autoExpand ? 'visible' : 'auto'};
               border-radius: inherit !important;
               background: transparent !important;
               border: none !important;
               user-select: text !important;
               -webkit-user-select: text !important;
               cursor: text;
+              ${autoExpand ? 'flex: 1 0 auto; overflow-y: visible;' : 'flex: 1; overflow-y: auto;'}
             }
             .ql-disabled .ql-editor {
               cursor: default;
