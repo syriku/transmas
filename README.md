@@ -21,7 +21,7 @@ Congratulations on generating your Wails3 application! This README will guide yo
    ```
 
    This will create a production-ready executable in the `build` directory.
-   _(Note: If CGO is enabled and you need to package the application for Windows, please refer to the [Packaging](#packaging) section.)_
+   _(Note: If CGO is enabled (in this repo, YES) and you need to package the application for Windows, please refer to the [Packaging](#packaging) section.)_
 
 ## Exploring Wails3 Features
 
