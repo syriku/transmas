@@ -1056,12 +1056,13 @@ function EditorPage() {
           isMatched={sourceLinesCount === targetLinesCount}
           containerRef={editorContainerRef}
         />
-        <div style={{ flex: 1, minWidth: 0, zIndex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0, zIndex: 1, display: 'flex', flexDirection: 'column' }}>
           <Editor
             ref={setSourceQuill}
             plainTextOnly
             autoExpand
             style={{
+              flex: 1,
               minHeight: '500px',
               background: 'white',
               boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
@@ -1070,12 +1071,13 @@ function EditorPage() {
             }}
           />
         </div>
-        <div style={{ flex: 1, minWidth: 0, zIndex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0, zIndex: 1, display: 'flex', flexDirection: 'column' }}>
           <Editor
             ref={setTargetQuill}
             plainTextOnly
             autoExpand
             style={{
+              flex: 1,
               minHeight: '500px',
               background: 'white',
               boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
