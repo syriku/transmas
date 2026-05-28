@@ -46,7 +46,7 @@ export function LoadWebNovel(url: string): $CancellablePromise<loader$0.Novel | 
     });
 }
 
-export function SaveNovelTxt(dirPath: string, novel: loader$0.Novel | null): $CancellablePromise<void> {
+export function SaveNovelTxt(dirPath: string, novel: loader$0.Novel | null): $CancellablePromise<string> {
     return $Call.ByID(246393112, dirPath, novel);
 }
 

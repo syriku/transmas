@@ -21,10 +21,14 @@ func (s *SystemService) LoadWebNovel(url string) (*loader.Novel, error) {
 
 var invalidFilenameChars = regexp.MustCompile(`[\\/:*?"<>|]`)
 
-func (s *SystemService) SaveNovelTxt(dirPath string, novel *loader.Novel) error {
+func (s *SystemService) SaveNovelTxt(dirPath string, novel *loader.Novel) (string, error) {
 	sanitizedTitle := invalidFilenameChars.ReplaceAllString(novel.Title, "_")
 	filePath := filepath.Join(dirPath, sanitizedTitle+".txt")
 	content := fmt.Sprintf("%s\n\n\n%s", novel.Title, novel.Content)
 
-	return os.WriteFile(filePath, []byte(content), 0644)
+	err := os.WriteFile(filePath, []byte(content), 0644)
+	if err != nil {
+		return "", err
+	}
+	return sanitizedTitle, nil
 }

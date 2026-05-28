@@ -15,7 +15,10 @@ import {
 import {
   SetWorkDir,
   ListCandidateChapters,
+  LoadWebNovel,
 } from '../bindings/github.com/syriku/transmas/service/systemservice'
+import NovelPreviewModal from './widgets/NovelPreviewModal'
+import { Novel } from '../bindings/github.com/syriku/kakuyomu-loader/models'
 
 import { useApp } from './AppContext'
 import { Chapter } from '../bindings/github.com/syriku/transmas/agents/database/models'
@@ -36,6 +39,8 @@ const ChaptersPage: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [modalMode, setModalMode] = useState<'local' | 'url'>('local')
   const [urlInput, setUrlInput] = useState('')
+  const [loadedNovel, setLoadedNovel] = useState<Novel | null>(null)
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
   const navigate = useNavigate()
   const { currentProject, setCurrentProject, setCurrentChapter } = useApp()
 
@@ -149,8 +154,27 @@ const ChaptersPage: React.FC = () => {
     }
   }
 
-  const handleAddViaUrlConfirm = () => {
-    setIsModalOpen(false)
+  const handleAddViaUrlConfirm = async () => {
+    if (!urlInput.trim()) return
+    setIsCreating(true)
+    try {
+      const novel = await LoadWebNovel(urlInput.trim())
+      if (novel) {
+        setLoadedNovel(novel)
+        setIsModalOpen(false)
+        setIsDropdownOpen(false)
+        setModalMode('local')
+        setUrlInput('')
+        setIsPreviewModalOpen(true)
+      } else {
+        alert('Failed to load novel content')
+      }
+    } catch (err: any) {
+      console.error('Failed to load web novel:', err)
+      alert(t('failedToAddChapter') + (err.message || err))
+    } finally {
+      setIsCreating(false)
+    }
   }
 
   const handleChapterClick = (chapter: Chapter) => {
@@ -522,11 +546,12 @@ const ChaptersPage: React.FC = () => {
                 >
                   <input
                     autoFocus
+                    disabled={isCreating}
                     type="text"
-                    placeholder={t('enterUrlPlaceholder')}
+                    placeholder={isCreating ? 'Loading...' : t('enterUrlPlaceholder')}
                     value={urlInput}
                     onChange={(e) => setUrlInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleAddViaUrlConfirm()}
+                    onKeyDown={(e) => e.key === 'Enter' && !isCreating && handleAddViaUrlConfirm()}
                     style={{
                       width: '100%',
                       padding: '12px 16px',
@@ -535,11 +560,13 @@ const ChaptersPage: React.FC = () => {
                       border: '1px solid #ddd',
                       boxSizing: 'border-box',
                       outline: 'none',
+                      backgroundColor: isCreating ? '#f5f5f5' : '#fff',
                     }}
                   />
                 </div>
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                   <button
+                    disabled={isCreating}
                     onClick={() => setIsModalOpen(false)}
                     style={{
                       height: '36px',
@@ -550,7 +577,7 @@ const ChaptersPage: React.FC = () => {
                       backgroundColor: 'white',
                       border: '1px solid #ddd',
                       borderRadius: '8px',
-                      cursor: 'pointer',
+                      cursor: isCreating ? 'not-allowed' : 'pointer',
                       color: '#666',
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -558,13 +585,14 @@ const ChaptersPage: React.FC = () => {
                       lineHeight: '1',
                       fontSize: '15px',
                       fontWeight: '500',
+                      opacity: isCreating ? 0.6 : 1,
                     }}
                   >
                     {t('cancel')}
                   </button>
                   <button
                     onClick={handleAddViaUrlConfirm}
-                    disabled={!urlInput.trim()}
+                    disabled={isCreating || !urlInput.trim()}
                     style={{
                       height: '36px',
                       padding: '0 16px',
@@ -574,18 +602,18 @@ const ChaptersPage: React.FC = () => {
                       backgroundColor: '#007bff',
                       border: 'none',
                       borderRadius: '8px',
-                      cursor: !urlInput.trim() ? 'not-allowed' : 'pointer',
+                      cursor: isCreating || !urlInput.trim() ? 'not-allowed' : 'pointer',
                       color: 'white',
                       fontWeight: '600',
                       fontSize: '15px',
-                      opacity: !urlInput.trim() ? 0.6 : 1,
+                      opacity: isCreating || !urlInput.trim() ? 0.6 : 1,
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       lineHeight: '1',
                     }}
                   >
-                    {t('confirm')}
+                    {isCreating ? t('creating') : t('confirm')}
                   </button>
                 </div>
               </>
@@ -600,6 +628,24 @@ const ChaptersPage: React.FC = () => {
           workDir={workDir}
           onSelectWorkDir={handleSelectWorkDir}
           onClose={() => setIsSettingsModalOpen(false)}
+        />
+      )}
+
+      {isPreviewModalOpen && loadedNovel && (
+        <NovelPreviewModal
+          novel={loadedNovel}
+          projectName={projectName || ''}
+          workDir={workDir}
+          nextOrder={chapters.length > 0 ? Math.max(...chapters.map((c) => c.Order)) + 1 : 1}
+          onClose={() => {
+            setIsPreviewModalOpen(false)
+            setLoadedNovel(null)
+          }}
+          onSaveSuccess={async () => {
+            setIsPreviewModalOpen(false)
+            setLoadedNovel(null)
+            await fetchChapters()
+          }}
         />
       )}
     </div>

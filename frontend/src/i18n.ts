@@ -124,7 +124,8 @@ const resources = {
       exportSuffixExported: '_exported',
       resetStatus: 'Reset Status',
       status: 'Status',
-      translationDiff: 'Translation Diff',
+      webNovelPreview: 'Web Novel Preview',
+      contentPreview: 'Content Preview',
     },
   },
   'zh-CN': {
@@ -247,7 +248,8 @@ const resources = {
       exportSuffixExported: '_导出',
       resetStatus: '重置状态',
       status: '状态',
-      translationDiff: '翻译对比',
+      webNovelPreview: '网页小说预览',
+      contentPreview: '内容预览',
     },
   },
 }
