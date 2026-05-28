@@ -2,6 +2,10 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
 	"time"
 
 	"github.com/syriku/kakuyomu-loader"
@@ -13,4 +17,14 @@ func (s *SystemService) LoadWebNovel(url string) (*loader.Novel, error) {
 
 	l := loader.NewKakuyomuLoader()
 	return l.Load(ctx, url)
+}
+
+var invalidFilenameChars = regexp.MustCompile(`[\\/:*?"<>|]`)
+
+func (s *SystemService) SaveNovelTxt(dirPath string, novel *loader.Novel) error {
+	sanitizedTitle := invalidFilenameChars.ReplaceAllString(novel.Title, "_")
+	filePath := filepath.Join(dirPath, sanitizedTitle+".txt")
+	content := fmt.Sprintf("%s\n\n\n%s", novel.Title, novel.Content)
+
+	return os.WriteFile(filePath, []byte(content), 0644)
 }
