@@ -113,6 +113,8 @@ github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/syriku/aisdk v1.0.0-alpha.11 h1:IuMlpJCwWX4iGEf0xHPYUazZhkcHwi9rI/qfyJCrr24=
 github.com/syriku/aisdk v1.0.0-alpha.11/go.mod h1:GCqF0iyfmabEkuACIpza9UioaIgHhW/lLaPhGIUdOzE=
+github.com/syriku/kakuyomu-loader v1.0.0-alpha.3 h1:LI8rTBLjRTSLhU7vC21ujw+3jCaeSGDR66HdzdfESwE=
+github.com/syriku/kakuyomu-loader v1.0.0-alpha.3/go.mod h1:8Ps9ExocIeJdr/mby5BHTOb5Ip/UKTBx+fr6VXtXZuU=
 github.com/syriku/quill-delta v1.0.0-alpha.2 h1:CLVagWnQ7Dx6pVOQPObulKIP1ZtQj0avyzrl8YDHsjM=
 github.com/syriku/quill-delta v1.0.0-alpha.2/go.mod h1:PkHNapW6+RPKv+pHgfDfpI9cWmD/q0V781ATd5qYC+w=
 github.com/wailsapp/wails/v3 v3.0.0-alpha.91 h1:hNbysesX5Q+d9+CkDjgTmt1rHDFp5vCDT6UqrE0fFfg=

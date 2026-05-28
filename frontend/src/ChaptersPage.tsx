@@ -15,7 +15,10 @@ import {
 import {
   SetWorkDir,
   ListCandidateChapters,
+  LoadWebNovel,
 } from '../bindings/github.com/syriku/transmas/service/systemservice'
+import NovelPreviewModal from './widgets/NovelPreviewModal'
+import { Novel } from '../bindings/github.com/syriku/kakuyomu-loader/models'
 
 import { useApp } from './AppContext'
 import { Chapter } from '../bindings/github.com/syriku/transmas/agents/database/models'
@@ -34,6 +37,10 @@ const ChaptersPage: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false)
   const [candidates, setCandidates] = useState<string[]>([])
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [modalMode, setModalMode] = useState<'local' | 'url'>('local')
+  const [urlInput, setUrlInput] = useState('')
+  const [loadedNovel, setLoadedNovel] = useState<Novel | null>(null)
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
   const navigate = useNavigate()
   const { currentProject, setCurrentProject, setCurrentChapter } = useApp()
 
@@ -51,6 +58,8 @@ const ChaptersPage: React.FC = () => {
     } else if (!isModalOpen) {
       setCandidates([])
       setIsDropdownOpen(false)
+      setModalMode('local')
+      setUrlInput('')
     }
   }, [isModalOpen, workDir, chapters])
 
@@ -140,6 +149,29 @@ const ChaptersPage: React.FC = () => {
     } catch (err: any) {
       console.error('Failed to add chapter:', err)
       alert(t('failedToAddChapter') + err.message)
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
+  const handleAddViaUrlConfirm = async () => {
+    if (!urlInput.trim()) return
+    setIsCreating(true)
+    try {
+      const novel = await LoadWebNovel(urlInput.trim())
+      if (novel) {
+        setLoadedNovel(novel)
+        setIsModalOpen(false)
+        setIsDropdownOpen(false)
+        setModalMode('local')
+        setUrlInput('')
+        setIsPreviewModalOpen(true)
+      } else {
+        alert('Failed to load novel content')
+      }
+    } catch (err: any) {
+      console.error('Failed to load web novel:', err)
+      alert(t('failedToAddChapter') + (err.message || err))
     } finally {
       setIsCreating(false)
     }
@@ -318,136 +350,274 @@ const ChaptersPage: React.FC = () => {
               borderRadius: '16px',
               width: '400px',
               boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+              position: 'relative',
             }}
             onClick={(e) => {
               e.stopPropagation()
               setIsDropdownOpen(false)
             }}
           >
-            <h2 style={{ margin: '0 0 20px 0' }}>{t('newChapter')}</h2>
-            <div
-              style={{ position: 'relative', marginBottom: '20px' }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <input
-                autoFocus
-                type="text"
-                placeholder={t('chapterTitlePlaceholder')}
-                value={newTitle}
-                onChange={(e) => {
-                  setNewTitle(e.target.value)
-                  setIsDropdownOpen(true)
-                }}
-                onFocus={() => setIsDropdownOpen(true)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddChapter()}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  fontSize: '16px',
-                  borderRadius: '8px',
-                  border: '1px solid #ddd',
-                  boxSizing: 'border-box',
-                  outline: 'none',
-                }}
-              />
-              {isDropdownOpen && candidates.length > 0 && (
+            {modalMode === 'local' ? (
+              <>
                 <div
                   style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    backgroundColor: 'white',
-                    border: '1px solid #ddd',
-                    borderRadius: '8px',
-                    marginTop: '4px',
-                    maxHeight: '200px',
-                    overflowY: 'auto',
-                    zIndex: 1001,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '20px',
                   }}
                 >
-                  {candidates
-                    .filter((c) => c.toLowerCase().includes(newTitle.toLowerCase()))
-                    .map((candidate) => (
-                      <div
-                        key={candidate}
-                        onClick={() => {
-                          setNewTitle(candidate)
-                          setIsDropdownOpen(false)
-                        }}
-                        style={{
-                          padding: '10px 16px',
-                          cursor: 'pointer',
-                          transition: 'background-color 0.2s',
-                        }}
-                        onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f0f7ff')}
-                        onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                      >
-                        {candidate}
-                      </div>
-                    ))}
-                  {candidates.filter((c) => c.toLowerCase().includes(newTitle.toLowerCase()))
-                    .length === 0 && (
-                    <div style={{ padding: '10px 16px', color: '#999', fontSize: '14px' }}>
-                      {t('noMatchingChapters')}
+                  <h2 style={{ margin: 0 }}>{t('newChapter')}</h2>
+                  <button
+                    onClick={() => setModalMode('url')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#007bff',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      padding: 0,
+                      whiteSpace: 'nowrap',
+                      marginRight: '16px',
+                    }}
+                  >
+                    {t('addViaUrl')}
+                  </button>
+                </div>
+                <div
+                  style={{ position: 'relative', marginBottom: '20px' }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder={t('chapterTitlePlaceholder')}
+                    value={newTitle}
+                    onChange={(e) => {
+                      setNewTitle(e.target.value)
+                      setIsDropdownOpen(true)
+                    }}
+                    onFocus={() => setIsDropdownOpen(true)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddChapter()}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      fontSize: '16px',
+                      borderRadius: '8px',
+                      border: '1px solid #ddd',
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                    }}
+                  />
+                  {isDropdownOpen && candidates.length > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        backgroundColor: 'white',
+                        border: '1px solid #ddd',
+                        borderRadius: '8px',
+                        marginTop: '4px',
+                        maxHeight: '200px',
+                        overflowY: 'auto',
+                        zIndex: 1001,
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      }}
+                    >
+                      {candidates
+                        .filter((c) => c.toLowerCase().includes(newTitle.toLowerCase()))
+                        .map((candidate) => (
+                          <div
+                            key={candidate}
+                            onClick={() => {
+                              setNewTitle(candidate)
+                              setIsDropdownOpen(false)
+                            }}
+                            style={{
+                              padding: '10px 16px',
+                              cursor: 'pointer',
+                              transition: 'background-color 0.2s',
+                            }}
+                            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#f0f7ff')}
+                            onMouseOut={(e) =>
+                              (e.currentTarget.style.backgroundColor = 'transparent')
+                            }
+                          >
+                            {candidate}
+                          </div>
+                        ))}
+                      {candidates.filter((c) => c.toLowerCase().includes(newTitle.toLowerCase()))
+                        .length === 0 && (
+                        <div style={{ padding: '10px 16px', color: '#999', fontSize: '14px' }}>
+                          {t('noMatchingChapters')}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button
-                disabled={isCreating}
-                onClick={() => setIsModalOpen(false)}
-                style={{
-                  height: '36px',
-                  padding: '0 16px',
-                  width: 'auto',
-                  margin: '0',
-                  whiteSpace: 'nowrap',
-                  backgroundColor: 'white',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  color: '#666',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  lineHeight: '1',
-                  fontSize: '15px',
-                  fontWeight: '500',
-                }}
-              >
-                {t('cancel')}
-              </button>
-              <button
-                disabled={isCreating || !candidates.includes(newTitle.trim())}
-                onClick={handleAddChapter}
-                style={{
-                  height: '36px',
-                  padding: '0 16px',
-                  width: 'auto',
-                  margin: '0',
-                  whiteSpace: 'nowrap',
-                  backgroundColor: '#007bff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor:
-                    isCreating || !candidates.includes(newTitle.trim()) ? 'not-allowed' : 'pointer',
-                  color: 'white',
-                  fontWeight: '600',
-                  fontSize: '15px',
-                  opacity: isCreating || !candidates.includes(newTitle.trim()) ? 0.6 : 1,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  lineHeight: '1',
-                }}
-              >
-                {isCreating ? t('creating') : t('createChapter')}
-              </button>
-            </div>
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                  <button
+                    disabled={isCreating}
+                    onClick={() => setIsModalOpen(false)}
+                    style={{
+                      height: '36px',
+                      padding: '0 16px',
+                      width: 'auto',
+                      margin: '0',
+                      whiteSpace: 'nowrap',
+                      backgroundColor: 'white',
+                      border: '1px solid #ddd',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      color: '#666',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      lineHeight: '1',
+                      fontSize: '15px',
+                      fontWeight: '500',
+                    }}
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button
+                    disabled={isCreating || !candidates.includes(newTitle.trim())}
+                    onClick={handleAddChapter}
+                    style={{
+                      height: '36px',
+                      padding: '0 16px',
+                      width: 'auto',
+                      margin: '0',
+                      whiteSpace: 'nowrap',
+                      backgroundColor: '#007bff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor:
+                        isCreating || !candidates.includes(newTitle.trim())
+                          ? 'not-allowed'
+                          : 'pointer',
+                      color: 'white',
+                      fontWeight: '600',
+                      fontSize: '15px',
+                      opacity: isCreating || !candidates.includes(newTitle.trim()) ? 0.6 : 1,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      lineHeight: '1',
+                    }}
+                  >
+                    {isCreating ? t('creating') : t('createChapter')}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginBottom: '20px',
+                    marginLeft: '-28px',
+                  }}
+                >
+                  <button
+                    onClick={() => setModalMode('local')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#666',
+                      cursor: 'pointer',
+                      fontSize: '20px',
+                      padding: '4px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    ←
+                  </button>
+                  <h2 style={{ margin: 0, paddingLeft: '18px' }}>{t('addChapterViaUrl')}</h2>
+                </div>
+                <div
+                  style={{ position: 'relative', marginBottom: '20px' }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <input
+                    autoFocus
+                    disabled={isCreating}
+                    type="text"
+                    placeholder={isCreating ? 'Loading...' : t('enterUrlPlaceholder')}
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && !isCreating && handleAddViaUrlConfirm()}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      fontSize: '16px',
+                      borderRadius: '8px',
+                      border: '1px solid #ddd',
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                      backgroundColor: isCreating ? '#f5f5f5' : '#fff',
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                  <button
+                    disabled={isCreating}
+                    onClick={() => setIsModalOpen(false)}
+                    style={{
+                      height: '36px',
+                      padding: '0 16px',
+                      width: 'auto',
+                      margin: '0',
+                      whiteSpace: 'nowrap',
+                      backgroundColor: 'white',
+                      border: '1px solid #ddd',
+                      borderRadius: '8px',
+                      cursor: isCreating ? 'not-allowed' : 'pointer',
+                      color: '#666',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      lineHeight: '1',
+                      fontSize: '15px',
+                      fontWeight: '500',
+                      opacity: isCreating ? 0.6 : 1,
+                    }}
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button
+                    onClick={handleAddViaUrlConfirm}
+                    disabled={isCreating || !urlInput.trim()}
+                    style={{
+                      height: '36px',
+                      padding: '0 16px',
+                      width: 'auto',
+                      margin: '0',
+                      whiteSpace: 'nowrap',
+                      backgroundColor: '#007bff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: isCreating || !urlInput.trim() ? 'not-allowed' : 'pointer',
+                      color: 'white',
+                      fontWeight: '600',
+                      fontSize: '15px',
+                      opacity: isCreating || !urlInput.trim() ? 0.6 : 1,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      lineHeight: '1',
+                    }}
+                  >
+                    {isCreating ? t('creating') : t('confirm')}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -458,6 +628,24 @@ const ChaptersPage: React.FC = () => {
           workDir={workDir}
           onSelectWorkDir={handleSelectWorkDir}
           onClose={() => setIsSettingsModalOpen(false)}
+        />
+      )}
+
+      {isPreviewModalOpen && loadedNovel && (
+        <NovelPreviewModal
+          novel={loadedNovel}
+          projectName={projectName || ''}
+          workDir={workDir}
+          nextOrder={chapters.length > 0 ? Math.max(...chapters.map((c) => c.Order)) + 1 : 1}
+          onClose={() => {
+            setIsPreviewModalOpen(false)
+            setLoadedNovel(null)
+          }}
+          onSaveSuccess={async () => {
+            setIsPreviewModalOpen(false)
+            setLoadedNovel(null)
+            await fetchChapters()
+          }}
         />
       )}
     </div>

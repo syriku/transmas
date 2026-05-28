@@ -11,6 +11,9 @@ import * as api$0 from "../../aisdk/api/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as request$0 from "../../aisdk/request/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as loader$0 from "../../kakuyomu-loader/models.js";
 
 export function GetLanguagesMap(): $CancellablePromise<{ [_ in request$0.Language]?: string }> {
     return $Call.ByID(2561332342).then(($result: any) => {
@@ -37,6 +40,16 @@ export function ListCandidateChapters(dir: string): $CancellablePromise<string[]
     });
 }
 
+export function LoadWebNovel(url: string): $CancellablePromise<loader$0.Novel | null> {
+    return $Call.ByID(1044756891, url).then(($result: any) => {
+        return $$createType3($result);
+    });
+}
+
+export function SaveNovelTxt(dirPath: string, novel: loader$0.Novel | null): $CancellablePromise<string> {
+    return $Call.ByID(246393112, dirPath, novel);
+}
+
 export function SetWorkDir(): $CancellablePromise<string> {
     return $Call.ByID(1417197123);
 }
@@ -44,3 +57,5 @@ export function SetWorkDir(): $CancellablePromise<string> {
 // Private type creation functions
 const $$createType0 = $Create.Map($Create.Any, $Create.Any);
 const $$createType1 = $Create.Array($Create.Any);
+const $$createType2 = loader$0.Novel.createFrom;
+const $$createType3 = $Create.Nullable($$createType2);
