@@ -21,6 +21,7 @@ Congratulations on generating your Wails3 application! This README will guide yo
    ```
 
    This will create a production-ready executable in the `build` directory.
+   _(Note: If CGO is enabled and you need to package the application for Windows, please refer to the [Packaging](#packaging) section.)_
 
 ## Exploring Wails3 Features
 
@@ -58,7 +59,41 @@ Take a moment to familiarize yourself with your project structure:
 
 Happy coding with Wails3! If you encounter any issues or have questions, don't hesitate to consult the documentation or reach out to the Wails community.
 
+## Packaging
+
+Follow these steps to package a production build of the application.
+
+### Prerequisites
+
+1. **Generate Dependency Licenses**:
+   Before packaging, you must collect and generate the dependency licenses:
+
+   ```bash
+   task licenses:collect
+   ```
+
+2. **Set Up Docker (Recommended)**:
+   Since the project uses CGO, cross-compilation requires a Docker environment. Build and configure the cross-compilation Docker image using:
+   ```bash
+   task setup:docker
+   ```
+   _Note: Alternatively, if you are building on a Windows host, you can use a local CGO-compatible GCC compiler, but using Docker is still highly recommended._
+
+### Packaging for Windows
+
+To trigger the Docker-based Windows compilation and packaging:
+
+1. Ensure the prerequisites above are completed.
+2. Run the packaging command with `CGO_ENABLED=1` passed as a task variable (not an environment variable):
+   ```bash
+   task windows:package CGO_ENABLED=1
+   ```
+3. **Important for ARM Hosts (e.g., Apple Silicon Macs)**:
+   If you are building on an ARM architecture host, you must also pass the architecture `ARCH=amd64` to the task. Otherwise, NSIS will package the application as `arm64`:
+   ```bash
+   task windows:package CGO_ENABLED=1 ARCH=amd64
+   ```
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
