@@ -11,6 +11,13 @@ const resources = {
       failedToLogin: 'Failed to login',
       loggingIn: 'Logging in...',
       login: 'Login',
+      resetData: 'Reset Data',
+      resetDataTitle: 'Confirm Data Reset',
+      resetDataWarning:
+        'This will delete all user data (including project records, chapter records), but will not delete the project text folders themselves (i.e. the project folders are preserved).',
+      confirmWithCountdown: 'Confirm ({{seconds}}s)',
+      resetSuccess: 'Reset completed successfully',
+      failedToReset: 'Failed to reset: ',
 
       translatorsSettings: 'Translators Settings',
       translatorName: 'Name:',
@@ -137,6 +144,13 @@ const resources = {
       failedToLogin: '登录失败',
       loggingIn: '登录中...',
       login: '登录',
+      resetData: '重置数据',
+      resetDataTitle: '确认重置数据',
+      resetDataWarning:
+        '这将会删除所有用户数据（包括项目记录、章节记录），但不会删除那些文本本身。即项目文件夹不会被删除。',
+      confirmWithCountdown: '确认 ({{seconds}}秒)',
+      resetSuccess: '重置成功',
+      failedToReset: '重置失败: ',
 
       translatorsSettings: '翻译器设置',
       translatorName: '名称:',

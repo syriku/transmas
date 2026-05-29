@@ -15,6 +15,10 @@ import * as request$0 from "../../aisdk/request/models.js";
 // @ts-ignore: Unused imports
 import * as loader$0 from "../../kakuyomu-loader/models.js";
 
+export function DeleteUserData(): $CancellablePromise<void> {
+    return $Call.ByID(1648938747);
+}
+
 export function GetLanguagesMap(): $CancellablePromise<{ [_ in request$0.Language]?: string }> {
     return $Call.ByID(2561332342).then(($result: any) => {
         return $$createType0($result);

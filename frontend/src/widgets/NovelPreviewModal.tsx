@@ -4,61 +4,64 @@ import { Novel } from '../../bindings/github.com/syriku/kakuyomu-loader/models'
 import { SaveNovelTxt } from '../../bindings/github.com/syriku/transmas/service/systemservice'
 import { AddChapter } from '../../bindings/github.com/syriku/transmas/service/agentservice'
 
-const renderContentWithFurigana = (content: string, vocabulary?: { [key: string]: string | undefined }) => {
+const renderContentWithFurigana = (
+  content: string,
+  vocabulary?: { [key: string]: string | undefined },
+) => {
   const escaped = (content || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replace(/'/g, '&#039;')
 
   if (!vocabulary || Object.keys(vocabulary).length === 0) {
-    return escaped;
+    return escaped
   }
 
-  const validVocab: Record<string, string> = {};
+  const validVocab: Record<string, string> = {}
   for (const [word, pron] of Object.entries(vocabulary)) {
     if (word && pron) {
-      validVocab[word] = pron;
+      validVocab[word] = pron
     }
   }
 
-  const sortedWords = Object.keys(validVocab).sort((a, b) => b.length - a.length);
+  const sortedWords = Object.keys(validVocab).sort((a, b) => b.length - a.length)
 
   interface Token {
-    type: 'text' | 'html';
-    value: string;
+    type: 'text' | 'html'
+    value: string
   }
 
-  let tokens: Token[] = [{ type: 'text', value: escaped }];
+  let tokens: Token[] = [{ type: 'text', value: escaped }]
 
   for (const word of sortedWords) {
-    const pron = validVocab[word];
-    const newTokens: Token[] = [];
+    const pron = validVocab[word]
+    const newTokens: Token[] = []
     for (const token of tokens) {
       if (token.type === 'html') {
-        newTokens.push(token);
-        continue;
+        newTokens.push(token)
+        continue
       }
 
-      const parts = token.value.split(word);
+      const parts = token.value.split(word)
       for (let i = 0; i < parts.length; i++) {
         if (parts[i]) {
-          newTokens.push({ type: 'text', value: parts[i] });
+          newTokens.push({ type: 'text', value: parts[i] })
         }
         if (i < parts.length - 1) {
           newTokens.push({
             type: 'html',
             value: `<ruby>${word}<rt>${pron}</rt></ruby>`,
-          });
+          })
         }
       }
     }
-    tokens = newTokens;
+    tokens = newTokens
   }
 
-  return tokens.map((t) => t.value).join('');
-};
+  return tokens.map((t) => t.value).join('')
+}
 
 interface NovelPreviewModalProps {
   novel: Novel
