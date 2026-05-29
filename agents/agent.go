@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"runtime/cgo"
 	"slices"
 	"strings"
@@ -64,6 +65,7 @@ type TranslateAgent interface {
 	ChapterAgent
 	ConfigAgent
 	ReadWriteAgent
+	WebAgent
 	CreateReusableTranslator(projectName string, model string) (uintptr, error)
 	DestroyReusableTranslator(handle uintptr) error
 	TranslateWithHandle(handle uintptr, detailed bool) (TranslationResponse, error)
@@ -90,6 +92,8 @@ type translateAgentImpl struct {
 	activeCancelMu    sync.Mutex
 	activeCancels     map[string]context.CancelFunc
 	chapterMeta       *meta.ChapterMeta
+	webMu             sync.Mutex
+	serverRunning     bool
 }
 
 var (
@@ -128,6 +132,14 @@ func NewTranslateAgent(db *gorm.DB, username string) (TranslateAgent, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if agent.userData.WebExtensionEnabled {
+		if err := agent.startServer(); err != nil {
+			log.Printf("failed to start web helper server: %v", err)
+			emitWebServerError(err.Error())
+		}
+	}
+
 	activeAgentMu.Lock()
 	activeAgent = agent
 	activeAgentMu.Unlock()
@@ -135,6 +147,8 @@ func NewTranslateAgent(db *gorm.DB, username string) (TranslateAgent, error) {
 }
 
 func (i *translateAgentImpl) Logout() error {
+	_ = i.stopServer()
+
 	activeAgentMu.Lock()
 	if activeAgent == i {
 		activeAgent = nil

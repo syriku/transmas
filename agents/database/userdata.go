@@ -11,16 +11,18 @@ import (
 
 type UserData struct {
 	gorm.Model
-	Username    string                        `gorm:"uniqueIndex"`
-	AiConfig    map[string]api.UserConfig     `gorm:"serializer:json"`
-	Translators map[string]request.Translator `gorm:"serializer:json"`
+	Username            string                        `gorm:"uniqueIndex"`
+	AiConfig            map[string]api.UserConfig     `gorm:"serializer:json"`
+	Translators         map[string]request.Translator `gorm:"serializer:json"`
+	WebExtensionEnabled bool
 }
 
 func NewUserData(username string) UserData {
 	return UserData{
-		Username:    username,
-		AiConfig:    map[string]api.UserConfig{},
-		Translators: map[string]request.Translator{},
+		Username:            username,
+		AiConfig:            map[string]api.UserConfig{},
+		Translators:         map[string]request.Translator{},
+		WebExtensionEnabled: false,
 	}
 }
 
@@ -55,6 +57,10 @@ func UpdateUserTranslators(db *gorm.DB, username string, translators map[string]
 		return err
 	}
 	return db.Model(&UserData{}).Where(&UserData{Username: username}).Update("translators", string(data)).Error
+}
+
+func UpdateUserWebExtensionEnabled(db *gorm.DB, username string, enabled bool) error {
+	return db.Model(&UserData{}).Where(&UserData{Username: username}).Update("web_extension_enabled", enabled).Error
 }
 
 func FetchUserTranslators(db *gorm.DB, username string) (map[string]request.Translator, error) {

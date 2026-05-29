@@ -326,3 +326,25 @@ func (a *AgentService) ExportTranslatedChapter(filePath string) error {
 	}
 	return agent.ExportTranslatedChapter(filePath)
 }
+
+func (a *AgentService) SetWebExtensionEnabled(enabled bool) error {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return fmt.Errorf("log in first please")
+	}
+	return agent.SetWebExtensionEnabled(enabled)
+}
+
+func (a *AgentService) GetWebExtensionEnabled() (bool, error) {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return false, fmt.Errorf("log in first please")
+	}
+	return agent.GetWebExtensionEnabled()
+}

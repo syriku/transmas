@@ -26,6 +26,7 @@ func init() {
 	// and provide a strongly typed JS/TS API for them.
 	application.RegisterEvent[string]("time")
 	application.RegisterEvent[agents.TranslationEventPayload](agents.TranslationEventName)
+	application.RegisterEvent[string](agents.WebServerErrorEventName)
 }
 
 // main function serves as the application's entry point. It initializes the application, creates a window,

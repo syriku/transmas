@@ -88,6 +88,10 @@ export function GetTranslators(): $CancellablePromise<{ [_ in string]?: request$
     });
 }
 
+export function GetWebExtensionEnabled(): $CancellablePromise<boolean> {
+    return $Call.ByID(3859722005);
+}
+
 export function ListChapters(projectName: string): $CancellablePromise<database$0.Chapter[]> {
     return $Call.ByID(3084619811, projectName).then(($result: any) => {
         return $$createType9($result);
@@ -140,6 +144,10 @@ export function SetCurrentChunkReviewed(completed: boolean): $CancellablePromise
 
 export function SetCurrentChunkTranslated(completed: boolean): $CancellablePromise<void> {
     return $Call.ByID(3495825867, completed);
+}
+
+export function SetWebExtensionEnabled(enabled: boolean): $CancellablePromise<void> {
+    return $Call.ByID(2935166233, enabled);
 }
 
 export function TranslateWithHandle(handle: number, detailed: boolean): $CancellablePromise<agents$0.TranslationResponse> {

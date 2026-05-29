@@ -14,6 +14,7 @@ declare module "@wailsio/runtime" {
         interface CustomEvents {
             "time": string;
             "translation-stream": agents$0.TranslationEventPayload;
+            "web-server-error": string;
         }
     }
 }
