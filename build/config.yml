@@ -8,9 +8,9 @@ info:
   companyName: "transmas" # The name of the company
   productName: "Transmas" # The name of the application
   productIdentifier: "com.github.syriku.transmas" # The unique product identifier
-  description: "A program that does X" # The application description
-  copyright: "(c) 2025, My Company" # Copyright text
-  comments: "Some Product Comments" # Comments
+  description: "An App to tranlsate any novel." # The application description
+  copyright: "(c) 2026, Syriku" # Copyright text
+  comments: "Translation Master" # Comments
   version: "1.0.0" # The application version
   # cfBundleIconName: "appicon" # The macOS icon name in Assets.car icon bundles (optional)
   #                               # Should match the name of your .icon file without the extension
