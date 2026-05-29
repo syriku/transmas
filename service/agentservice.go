@@ -19,21 +19,47 @@ type AgentService struct {
 	mu    sync.RWMutex
 }
 
-func NewAgentService(db *gorm.DB) *AgentService {
-	return &AgentService{
-		db: db,
-	}
+func NewAgentService() *AgentService {
+	return &AgentService{}
 }
 
 func (a *AgentService) LogIn(username string) error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	if a.db == nil {
+		db, err := database.ConnectDB()
+		if err != nil {
+			return fmt.Errorf("failed to connect to database: %w", err)
+		}
+		a.db = db
+	}
+
 	agent, err := agents.NewTranslateAgent(a.db, username)
 	if err != nil {
 		return err
 	}
 
-	a.mu.Lock()
 	a.agent = agent
-	a.mu.Unlock()
+	return nil
+}
+
+func (a *AgentService) LogOut() error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	if a.agent != nil {
+		_ = a.agent.Logout()
+		a.agent = nil
+	}
+
+	if a.db != nil {
+		sqlDB, err := a.db.DB()
+		if err == nil {
+			sqlDB.Close()
+		}
+		a.db = nil
+	}
 	return nil
 }
 

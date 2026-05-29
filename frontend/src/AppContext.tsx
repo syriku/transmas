@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { LogIn } from '../bindings/github.com/syriku/transmas/service/agentservice'
+import { LogIn, LogOut } from '../bindings/github.com/syriku/transmas/service/agentservice'
 import { ProjectInfo, Chapter } from '../bindings/github.com/syriku/transmas/agents/database/models'
 
 interface AppContextType {
@@ -59,6 +59,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }
 
   const logout = () => {
+    LogOut().catch(console.error)
     setUsernameState(null)
     setCurrentProjectState(null)
     setCurrentChapterState(null)

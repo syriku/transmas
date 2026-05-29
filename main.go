@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/syriku/transmas/agents"
-	"github.com/syriku/transmas/agents/database"
 	"github.com/syriku/transmas/service"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -33,12 +32,6 @@ func init() {
 // and starts a goroutine that emits a time-based event every second. It subsequently runs the application and
 // logs any error that might occur.
 func main() {
-	// Initialize Database
-	db, err := database.ConnectDB()
-	if err != nil {
-		log.Fatalf("database init failed: %v", err)
-	}
-
 	// Create a new Wails application by providing the necessary options.
 	// Variables 'Name' and 'Description' are for application metadata.
 	// 'Assets' configures the asset server with the 'FS' variable pointing to the frontend files.
@@ -48,7 +41,7 @@ func main() {
 		Name:        "transmas",
 		Description: "A demo of using raw HTML & CSS",
 		Services: []application.Service{
-			application.NewService(service.NewAgentService(db)),
+			application.NewService(service.NewAgentService()),
 			application.NewService(service.NewSystemService()),
 		},
 		Assets: application.AssetOptions{
@@ -88,7 +81,7 @@ func main() {
 	}()
 
 	// Run the application. This blocks until the application has been exited.
-	err = app.Run()
+	err := app.Run()
 
 	// If an error occurred while running the application, log it and exit.
 	if err != nil {

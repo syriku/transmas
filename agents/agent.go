@@ -73,6 +73,7 @@ type TranslateAgent interface {
 	GetChapterMeta() (*meta.ChapterMeta, error)
 	SetCurrentChunkTranslated(completed bool) error
 	SetCurrentChunkReviewed(completed bool) error
+	Logout() error
 }
 
 type translateAgentImpl struct {
@@ -89,6 +90,17 @@ type translateAgentImpl struct {
 	activeCancelMu    sync.Mutex
 	activeCancels     map[string]context.CancelFunc
 	chapterMeta       *meta.ChapterMeta
+}
+
+var (
+	activeAgentMu sync.RWMutex
+	activeAgent   TranslateAgent
+)
+
+func IsLoggedIn() bool {
+	activeAgentMu.RLock()
+	defer activeAgentMu.RUnlock()
+	return activeAgent != nil
 }
 
 func newTranslateAgentImpl(db *gorm.DB, username string) (*translateAgentImpl, error) {
@@ -112,7 +124,23 @@ func newTranslateAgentImpl(db *gorm.DB, username string) (*translateAgentImpl, e
 }
 
 func NewTranslateAgent(db *gorm.DB, username string) (TranslateAgent, error) {
-	return newTranslateAgentImpl(db, username)
+	agent, err := newTranslateAgentImpl(db, username)
+	if err != nil {
+		return nil, err
+	}
+	activeAgentMu.Lock()
+	activeAgent = agent
+	activeAgentMu.Unlock()
+	return agent, nil
+}
+
+func (i *translateAgentImpl) Logout() error {
+	activeAgentMu.Lock()
+	if activeAgent == i {
+		activeAgent = nil
+	}
+	activeAgentMu.Unlock()
+	return nil
 }
 
 func getDeltaText(d *quilldelta.Delta) string {

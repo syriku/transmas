@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/syriku/aisdk/request"
+	"github.com/syriku/transmas/agents"
+	"github.com/syriku/transmas/config"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -15,6 +17,21 @@ type SystemService struct {
 
 func NewSystemService() *SystemService {
 	return &SystemService{}
+}
+
+func (s *SystemService) DeleteUserData() error {
+	if agents.IsLoggedIn() {
+		return fmt.Errorf("cannot delete user data while a user is logged in")
+	}
+
+	cfg := config.GetGlobalConfig()
+	dbPath := filepath.Join(cfg.AppPath, "savedata.db")
+
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		return nil
+	}
+
+	return os.Remove(dbPath)
 }
 
 func (s *SystemService) SetWorkDir() (string, error) {

@@ -104,6 +104,10 @@ export function LogIn(username: string): $CancellablePromise<void> {
     return $Call.ByID(2049314798, username);
 }
 
+export function LogOut(): $CancellablePromise<void> {
+    return $Call.ByID(4174194831);
+}
+
 export function NextChunk(): $CancellablePromise<agents$0.ChunkInfo> {
     return $Call.ByID(1364276089).then(($result: any) => {
         return $$createType12($result);
