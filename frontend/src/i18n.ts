@@ -94,6 +94,8 @@ const resources = {
       renaming: 'Renaming...',
       confirm: 'Confirm',
       failedToRenameProject: 'Failed to rename project: ',
+      systemSettings: 'System Settings',
+      enableWebExtension: 'Enable Web Extension Support',
 
       back: 'Back',
       translate: 'Translate',
@@ -228,6 +230,8 @@ const resources = {
       renaming: '重命名中...',
       confirm: '确认',
       failedToRenameProject: '重命名项目失败: ',
+      systemSettings: '系统设置',
+      enableWebExtension: '启用网页插件支持',
 
       back: '返回',
       translate: '翻译',

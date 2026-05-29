@@ -2,8 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import ItemCard from './widgets/ItemCard'
-import TranslatorsModal from './widgets/TranslatorsModal'
-import AiConfigModal from './widgets/AiConfigModal'
+import UserSettingsModal from './widgets/UserSettingsModal'
 // @ts-ignore
 import {
   ListProjects,
@@ -20,8 +19,7 @@ const HomePage: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isTranslatorsModalOpen, setIsTranslatorsModalOpen] = useState(false)
-  const [isAiConfigModalOpen, setIsAiConfigModalOpen] = useState(false)
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const navigate = useNavigate()
@@ -164,11 +162,10 @@ const HomePage: React.FC = () => {
           <h1 style={{ margin: 0, fontSize: '2.5rem', fontWeight: '700' }}>{t('myProjects')}</h1>
           <div style={{ display: 'flex', gap: '12px' }}>
             <button
-              onClick={() => setIsAiConfigModalOpen(true)}
+              onClick={() => setIsSettingsModalOpen(true)}
               style={{
                 height: '40px',
-                padding: '0 24px',
-                minWidth: '110px',
+                padding: '0 16px',
                 width: 'auto',
                 margin: '0',
                 backgroundColor: 'white',
@@ -179,37 +176,37 @@ const HomePage: React.FC = () => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                gap: '8px',
                 fontSize: '14px',
-                fontWeight: '500',
+                fontWeight: '600',
                 lineHeight: '1',
                 whiteSpace: 'nowrap',
+                transition: 'all 0.2s',
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = '#f5f5f5'
+                e.currentTarget.style.borderColor = '#ccc'
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = 'white'
+                e.currentTarget.style.borderColor = '#ddd'
               }}
             >
-              {t('aiConfig')}
-            </button>
-            <button
-              onClick={() => setIsTranslatorsModalOpen(true)}
-              style={{
-                height: '40px',
-                padding: '0 24px',
-                minWidth: '110px',
-                width: 'auto',
-                margin: '0',
-                backgroundColor: 'white',
-                border: '1px solid #ddd',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                color: '#333',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '14px',
-                fontWeight: '500',
-                lineHeight: '1',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {t('translators')}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.52 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+              {t('settings')}
             </button>
             <button
               onClick={() => {
@@ -530,11 +527,7 @@ const HomePage: React.FC = () => {
         </div>
       )}
 
-      {isTranslatorsModalOpen && (
-        <TranslatorsModal onClose={() => setIsTranslatorsModalOpen(false)} />
-      )}
-
-      {isAiConfigModalOpen && <AiConfigModal onClose={() => setIsAiConfigModalOpen(false)} />}
+      {isSettingsModalOpen && <UserSettingsModal onClose={() => setIsSettingsModalOpen(false)} />}
     </div>
   )
 }
