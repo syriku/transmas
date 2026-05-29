@@ -29,6 +29,7 @@ import {
   ExportTranslatedChapter,
 } from '../bindings/github.com/syriku/transmas/service/agentservice'
 import FloatingSettingsMenu from './widgets/FloatingSettingsMenu'
+import GlossaryModal from './widgets/GlossaryModal'
 import Quill from 'quill'
 import { useApp } from './AppContext'
 import { Events, Dialogs } from '@wailsio/runtime'
@@ -59,6 +60,7 @@ function EditorPage() {
   const [isDirty, setIsDirty] = useState(false)
   const [showExitPromptModal, setShowExitPromptModal] = useState(false)
   const [showLoadPromptModal, setShowLoadPromptModal] = useState(false)
+  const [isGlossaryModalOpen, setIsGlossaryModalOpen] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [selectedModel, setSelectedModel] = useState<string>('')
   const [totalChunks, setTotalChunks] = useState(1)
@@ -819,18 +821,17 @@ function EditorPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
-            onClick={handleExport}
-            disabled={loading || translating}
+            onClick={() => setIsGlossaryModalOpen(true)}
             style={{
               width: 'auto',
               whiteSpace: 'nowrap',
               height: '40px',
               padding: '0 16px',
-              backgroundColor: loading || translating ? '#8fc0eb' : '#007bff',
-              color: 'white',
-              border: 'none',
+              backgroundColor: 'white',
+              color: '#333',
+              border: '1px solid #ddd',
               borderRadius: '8px',
-              cursor: loading || translating ? 'not-allowed' : 'pointer',
+              cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
@@ -842,10 +843,12 @@ function EditorPage() {
               lineHeight: '1',
             }}
             onMouseOver={(e) => {
-              if (!loading && !translating) e.currentTarget.style.backgroundColor = '#0056b3'
+              e.currentTarget.style.backgroundColor = '#f5f5f5'
+              e.currentTarget.style.borderColor = '#ccc'
             }}
             onMouseOut={(e) => {
-              if (!loading && !translating) e.currentTarget.style.backgroundColor = '#007bff'
+              e.currentTarget.style.backgroundColor = 'white'
+              e.currentTarget.style.borderColor = '#ddd'
             }}
           >
             <svg
@@ -859,11 +862,10 @@ function EditorPage() {
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
             </svg>
-            {t('export')}
+            {t('glossary')}
           </button>
           <button
             onClick={handleSave}
@@ -911,6 +913,53 @@ function EditorPage() {
               <polyline points="7 3 7 8 15 8" />
             </svg>
             {t('save')}
+          </button>
+          <button
+            onClick={handleExport}
+            disabled={loading || translating}
+            style={{
+              width: 'auto',
+              whiteSpace: 'nowrap',
+              height: '40px',
+              padding: '0 16px',
+              backgroundColor: loading || translating ? '#8fc0eb' : '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: loading || translating ? 'not-allowed' : 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+              margin: 0,
+              lineHeight: '1',
+            }}
+            onMouseOver={(e) => {
+              if (!loading && !translating) e.currentTarget.style.backgroundColor = '#0056b3'
+            }}
+            onMouseOut={(e) => {
+              if (!loading && !translating) e.currentTarget.style.backgroundColor = '#007bff'
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            {t('export')}
           </button>
         </div>
       </div>
@@ -1347,6 +1396,14 @@ function EditorPage() {
       )}
       {/* Toast Notification */}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+      {/* Glossary Settings Modal */}
+      {isGlossaryModalOpen && (
+        <GlossaryModal
+          projectName={projectName || ''}
+          onClose={() => setIsGlossaryModalOpen(false)}
+        />
+      )}
 
       <FloatingSettingsMenu
         projectName={projectName}
