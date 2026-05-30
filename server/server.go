@@ -208,10 +208,18 @@ func (f *ClientFactory) Create(config ServerConfig) (TransmasClient, error) {
 		}
 
 		reader := loader.NewHtmlReader(req.HTML)
-		novel, err := reader.Novel()
+		novel, err := reader.KakuyomuNovel()
 		if err != nil {
 			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to parse HTML: %v", err))
 			return
+		}
+
+		if novel.Content == "" {
+			novel, err = reader.AnyHtmlNovel()
+			if err != nil {
+				writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to parse arbitrary HTML: %v", err))
+				return
+			}
 		}
 
 		novel.Title = req.Title
