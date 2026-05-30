@@ -66,9 +66,7 @@ func (s *SystemService) ListCandidateChapters(dir string) ([]string, error) {
 		name := entry.Name()
 		if filepath.Ext(name) == ".txt" {
 			base := strings.TrimSuffix(name, ".txt")
-			if !strings.HasSuffix(base, "_translated") {
-				files = append(files, base)
-			}
+			files = append(files, base)
 		}
 	}
 	return files, nil

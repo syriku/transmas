@@ -1,6 +1,10 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
+export const EXPORT_SUFFIXES_EN = ['_translated', '_reviewed', '_exported'] as const
+export const EXPORT_SUFFIXES_ZH = ['_已翻译', '_已校对', '_导出'] as const
+export const EXPORT_SUFFIXES = [...EXPORT_SUFFIXES_EN, ...EXPORT_SUFFIXES_ZH]
+
 const resources = {
   en: {
     translation: {
@@ -128,9 +132,9 @@ const resources = {
       export: 'Export',
       exportSuccess: 'Exported successfully',
       failedToExport: 'Failed to export: ',
-      exportSuffixTranslated: '_translated',
-      exportSuffixReviewed: '_reviewed',
-      exportSuffixExported: '_exported',
+      exportSuffixTranslated: EXPORT_SUFFIXES_EN[0],
+      exportSuffixReviewed: EXPORT_SUFFIXES_EN[1],
+      exportSuffixExported: EXPORT_SUFFIXES_EN[2],
       resetStatus: 'Reset Status',
       status: 'Status',
       webNovelPreview: 'Web Novel Preview',
@@ -261,9 +265,9 @@ const resources = {
       export: '导出',
       exportSuccess: '导出成功',
       failedToExport: '导出失败: ',
-      exportSuffixTranslated: '_已翻译',
-      exportSuffixReviewed: '_已校对',
-      exportSuffixExported: '_导出',
+      exportSuffixTranslated: EXPORT_SUFFIXES_ZH[0],
+      exportSuffixReviewed: EXPORT_SUFFIXES_ZH[1],
+      exportSuffixExported: EXPORT_SUFFIXES_ZH[2],
       resetStatus: '重置状态',
       status: '状态',
       webNovelPreview: '网页小说预览',

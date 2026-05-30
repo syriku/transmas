@@ -22,6 +22,7 @@ import { Novel } from '../bindings/github.com/syriku/kakuyomu-loader/models'
 
 import { useApp } from './AppContext'
 import { Chapter } from '../bindings/github.com/syriku/transmas/agents/database/models'
+import { EXPORT_SUFFIXES } from './i18n'
 
 const ChaptersPage: React.FC = () => {
   const { t } = useTranslation()
@@ -49,7 +50,11 @@ const ChaptersPage: React.FC = () => {
       ListCandidateChapters(workDir)
         .then((list: string[]) => {
           const existingTitles = new Set(chapters.map((c) => c.Title))
-          const available = (list || []).filter((title) => !existingTitles.has(title))
+          const available = (list || []).filter((title) => {
+            const hasExisting = existingTitles.has(title)
+            const isExported = EXPORT_SUFFIXES.some((suffix) => title.endsWith(suffix))
+            return !hasExisting && !isExported
+          })
           setCandidates(available)
         })
         .catch((err: any) => {
