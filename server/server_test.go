@@ -99,6 +99,7 @@ func TestServerRoutes(t *testing.T) {
 	postBody, _ := json.Marshal(map[string]string{
 		"projectName": "Project Alpha",
 		"html":        htmlContent,
+		"title":       "Test Title",
 	})
 
 	resp, err = client.Post(baseURL+"/chapter/html", "application/json", bytes.NewBuffer(postBody))
