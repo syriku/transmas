@@ -185,6 +185,7 @@ func (f *ClientFactory) Create(config ServerConfig) (TransmasClient, error) {
 		var req struct {
 			ProjectName string `json:"projectName"`
 			HTML        string `json:"html"`
+			Title       string `json:"title"`
 		}
 
 		err := json.NewDecoder(r.Body).Decode(&req)
@@ -201,6 +202,10 @@ func (f *ClientFactory) Create(config ServerConfig) (TransmasClient, error) {
 			writeJSONError(w, http.StatusBadRequest, "html content is required")
 			return
 		}
+		if req.Title == "" {
+			writeJSONError(w, http.StatusBadRequest, "title is required")
+			return
+		}
 
 		reader := loader.NewHtmlReader(req.HTML)
 		novel, err := reader.Novel()
@@ -208,6 +213,8 @@ func (f *ClientFactory) Create(config ServerConfig) (TransmasClient, error) {
 			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to parse HTML: %v", err))
 			return
 		}
+
+		novel.Title = req.Title
 
 		err = createChapter(req.ProjectName, novel)
 		if err != nil {
