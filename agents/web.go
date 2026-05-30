@@ -1,7 +1,10 @@
 package agents
 
 import (
+	"log"
+
 	"github.com/syriku/transmas/agents/database"
+	"github.com/syriku/transmas/server"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -45,7 +48,57 @@ func (i *translateAgentImpl) startServer() error {
 		return nil
 	}
 
-	// Stub start server logic
+	factory := server.NewClientFactory()
+	srv, err := factory.Create(server.ServerConfig{
+		Port:     45123,
+		Username: i.userData.Username,
+		ListProjects: func() ([]server.ProjectInfo, error) {
+			projects, err := i.ListProjects()
+			if err != nil {
+				return nil, err
+			}
+			var result []server.ProjectInfo
+			for _, p := range projects {
+				result = append(result, server.ProjectInfo{
+					Title:   p.Title,
+					WorkDir: p.WorkDir,
+				})
+			}
+			return result, nil
+		},
+		GetProjectWorkDir: func(projectName string) (string, error) {
+			proj, err := database.FetchProjectByOwnerAndTitle(i.db, i.userData.Username, projectName)
+			if err != nil {
+				return "", err
+			}
+			return proj.WorkDir, nil
+		},
+		GetNextChapterOrder: func(projectName string) (uint, error) {
+			chapters, err := listChapters(i.db, i.userData.Username, projectName)
+			if err != nil {
+				return 0, err
+			}
+			nextOrder := uint(1)
+			if len(chapters) > 0 {
+				maxVal := uint(0)
+				for _, c := range chapters {
+					if c.Order > maxVal {
+						maxVal = c.Order
+					}
+				}
+				nextOrder = maxVal + 1
+			}
+			return nextOrder, nil
+		},
+		AddChapter: func(projectName string, order uint, title string) error {
+			return i.AddChapter(projectName, order, title)
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	i.webServer = srv
 	i.userData.WebExtensionEnabled = true
 	i.serverRunning = true
 	return nil
@@ -58,7 +111,13 @@ func (i *translateAgentImpl) stopServer() error {
 		return nil
 	}
 
-	// Stub stop server logic
+	if i.webServer != nil {
+		if err := i.webServer.Dispose(); err != nil {
+			log.Printf("failed to stop web helper server: %v", err)
+		}
+		i.webServer = nil
+	}
+
 	i.userData.WebExtensionEnabled = false
 	i.serverRunning = false
 	return nil

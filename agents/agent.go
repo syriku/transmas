@@ -17,6 +17,7 @@ import (
 	"github.com/syriku/quill-delta/quilldelta"
 	"github.com/syriku/transmas/agents/database"
 	"github.com/syriku/transmas/agents/meta"
+	"github.com/syriku/transmas/server"
 	"github.com/syriku/transmas/text"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"gorm.io/gorm"
@@ -94,6 +95,7 @@ type translateAgentImpl struct {
 	chapterMeta       *meta.ChapterMeta
 	webMu             sync.Mutex
 	serverRunning     bool
+	webServer         server.TransmasClient
 }
 
 var (

@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	github.com/syriku/aisdk v1.0.0-alpha.11
-	github.com/syriku/kakuyomu-loader v1.0.0-alpha.3
+	github.com/syriku/kakuyomu-loader v1.0.0-alpha.4
 	github.com/syriku/quill-delta v1.0.0-alpha.2
 	github.com/wailsapp/wails/v3 v3.0.0-alpha.91
 	gorm.io/driver/sqlite v1.6.0
