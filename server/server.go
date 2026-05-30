@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -306,6 +307,7 @@ func (f *ClientFactory) Create(config ServerConfig) (TransmasClient, error) {
 	}
 
 	s.wg.Add(1)
+	log.Printf("Server started listening on %s", ln.Addr().String())
 	go func() {
 		defer s.wg.Done()
 		if err := server.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
