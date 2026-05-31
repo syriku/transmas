@@ -355,6 +355,11 @@ func (i *translateAgentImpl) translateCommon(projectName string, model string, h
 			return TranslationResponse{}, req.Error()
 		}
 		translatedText := req.Text()
+		if i.currentChunkIndex < len(i.chunks)-1 {
+			if !strings.HasSuffix(translatedText, "\n") {
+				translatedText += "\n"
+			}
+		}
 
 		if i.translatedChunks == nil {
 			i.translatedChunks = make([]*quilldelta.Delta, len(i.chunks))
@@ -450,6 +455,18 @@ func (i *translateAgentImpl) translateCommon(projectName string, model string, h
 			}
 
 			translatedText := accumulatedText.String()
+			if chunkIndex < len(i.chunks)-1 {
+				if !strings.HasSuffix(translatedText, "\n") {
+					emitEvent(TranslationEventPayload{
+						Handle: handleStr,
+						Seq:    seq,
+						Text:   "\n",
+					})
+					seq++
+					accumulatedText.WriteString("\n")
+					translatedText += "\n"
+				}
+			}
 
 			i.chapterMu.Lock()
 			if i.chapterFile != nil && i.chapterFile.FileName == chapterFileName && chunkIndex < len(i.chunks) {
