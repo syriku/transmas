@@ -715,3 +715,111 @@ func TestTranslateAgentImpl_GetChapterStatus(t *testing.T) {
 		t.Errorf("expected status to be StatusReviewed from disk, got %v", status)
 	}
 }
+
+func TestTranslateAgentImpl_DeleteProjectAndChapter(t *testing.T) {
+	// Setup in-memory SQLite DB
+	db, err := gorm.Open(sqlite.Open("file:memdb_delete?mode=memory&cache=shared"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("failed to open memory db: %v", err)
+	}
+	err = db.AutoMigrate(&database.UserData{}, &database.ProjectInfo{}, &database.Chapter{})
+	if err != nil {
+		t.Fatalf("failed to migrate db: %v", err)
+	}
+
+	username := "testuser"
+	projectName := "testproject"
+
+	agent, err := NewTranslateAgent(db, username)
+	if err != nil {
+		t.Fatalf("failed to create translate agent: %v", err)
+	}
+
+	// Add project
+	err = agent.AddProject(projectName)
+	if err != nil {
+		t.Fatalf("failed to add project: %v", err)
+	}
+
+	// Add chapter
+	err = agent.AddChapter(projectName, 1, "chap1")
+	if err != nil {
+		t.Fatalf("failed to add chapter: %v", err)
+	}
+
+	// Add another chapter
+	err = agent.AddChapter(projectName, 2, "chap2")
+	if err != nil {
+		t.Fatalf("failed to add chapter: %v", err)
+	}
+
+	// Verify they are created
+	projects, err := agent.ListProjects()
+	if err != nil || len(projects) != 1 {
+		t.Fatalf("expected 1 project, got: %v (err: %v)", projects, err)
+	}
+
+	chapters, err := agent.ListChapters(projectName)
+	if err != nil || len(chapters) != 2 {
+		t.Fatalf("expected 2 chapters, got: %v (err: %v)", chapters, err)
+	}
+
+	// Delete chapter 2
+	err = agent.DeleteChapter(projectName, 2)
+	if err != nil {
+		t.Fatalf("failed to delete chapter: %v", err)
+	}
+
+	// Verify chapter 2 is gone but chapter 1 remains
+	chapters, err = agent.ListChapters(projectName)
+	if err != nil {
+		t.Fatalf("failed to list chapters: %v", err)
+	}
+	if len(chapters) != 1 || chapters[0].Order != 1 {
+		t.Errorf("expected only chapter 1 to remain, got: %v", chapters)
+	}
+
+	// Verify we can re-create chapter 2 without unique constraint conflict
+	err = agent.AddChapter(projectName, 2, "chap2_new")
+	if err != nil {
+		t.Errorf("failed to recreate chapter after deletion: %v", err)
+	}
+
+	// Store project ID to check cascading deletion of chapters directly in DB
+	var proj database.ProjectInfo
+	err = db.Where(&database.ProjectInfo{Owner: username, Title: projectName}).First(&proj).Error
+	if err != nil {
+		t.Fatalf("failed to find project directly in db: %v", err)
+	}
+
+	// Delete project
+	err = agent.DeleteProject(projectName)
+	if err != nil {
+		t.Fatalf("failed to delete project: %v", err)
+	}
+
+	// Verify project is gone
+	projects, err = agent.ListProjects()
+	if err != nil {
+		t.Fatalf("failed to list projects: %v", err)
+	}
+	if len(projects) != 0 {
+		t.Errorf("expected project to be deleted, but still got: %v", projects)
+	}
+
+	// Verify chapters under that project ID are hard deleted from the database
+	var remainingChapters []database.Chapter
+	err = db.Unscoped().Where(&database.Chapter{Project: proj.ID}).Find(&remainingChapters).Error
+	if err != nil {
+		t.Fatalf("failed to query chapters directly: %v", err)
+	}
+	if len(remainingChapters) != 0 {
+		t.Errorf("expected all chapters of deleted project to be hard-deleted, but found: %v", remainingChapters)
+	}
+
+	// Verify we can re-create project without unique constraint conflict
+	err = agent.AddProject(projectName)
+	if err != nil {
+		t.Errorf("failed to recreate project after deletion: %v", err)
+	}
+}

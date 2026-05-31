@@ -530,6 +530,10 @@ func (i *translateAgentImpl) UpdateGlossary(title string, glossary []request.Glo
 	return updateGlossary(i.db, i.userData.Username, title, glossary)
 }
 
+func (i *translateAgentImpl) DeleteProject(title string) error {
+	return deleteProject(i.db, i.userData.Username, title)
+}
+
 func (i *translateAgentImpl) ListChapters(projectName string) ([]database.Chapter, error) {
 	return listChapters(i.db, i.userData.Username, projectName)
 }
@@ -540,6 +544,10 @@ func (i *translateAgentImpl) AddChapter(projectName string, order uint, title st
 
 func (i *translateAgentImpl) UpdateChapterTitle(projectName string, order uint, title string) error {
 	return updateChapterTitle(i.db, i.userData.Username, projectName, order, title)
+}
+
+func (i *translateAgentImpl) DeleteChapter(projectName string, order uint) error {
+	return deleteChapter(i.db, i.userData.Username, projectName, order)
 }
 
 func (i *translateAgentImpl) GetChapterMeta() (*meta.ChapterMeta, error) {

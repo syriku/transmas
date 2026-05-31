@@ -13,12 +13,14 @@ type ProjectAgent interface {
 	UpdateProjectDir(title string, dir string) error
 	GetGlossary(title string) ([]request.GlossaryEntry, error)
 	UpdateGlossary(title string, glossary []request.GlossaryEntry) error
+	DeleteProject(title string) error
 }
 
 type ChapterAgent interface {
 	ListChapters(projectName string) ([]database.Chapter, error)
 	AddChapter(projectName string, order uint, title string) error
 	UpdateChapterTitle(projectName string, order uint, title string) error
+	DeleteChapter(projectName string, order uint) error
 }
 
 func listProjects(db *gorm.DB, user string) ([]database.ProjectInfo, error) {
@@ -74,4 +76,16 @@ func updateChapterTitle(db *gorm.DB, user string, projectName string, order uint
 		return err
 	}
 	return database.UpdateChapterTitle(db, proj.ID, order, title)
+}
+
+func deleteProject(db *gorm.DB, user string, title string) error {
+	return database.DeleteProject(db, user, title)
+}
+
+func deleteChapter(db *gorm.DB, user string, projectName string, order uint) error {
+	proj, err := database.FetchProjectByOwnerAndTitle(db, user, projectName)
+	if err != nil {
+		return err
+	}
+	return database.DeleteChapter(db, proj.ID, order)
 }
