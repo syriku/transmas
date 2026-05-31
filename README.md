@@ -6,7 +6,7 @@
 
 ## Core Features
 
-- **AI-Assisted Translation**: Integrates with LLM providers (using `aisdk`) for high-quality translation. Supports both synchronous translation for shorter segments and asynchronous stream-based translation for larger chunks.
+- **AI-Assisted Translation**: Integrates with LLM providers (using `aisdk`) for high-quality translation. Supports both synchronous translation for shorter segments and asynchronous stream-based translation for larger chunks. (Note: Although both OpenAI-style and Anthropic-style third-party APIs are supported, using OpenAI-style APIs is highly recommended. Compatibility with all third-party Anthropic-compatible providers is not guaranteed.)
 - **Chunk-Based Workflows**: Splits chapters into manageable chunks represented as Quill-compatible Deltas. Allows translators to track translation progress and review status on a chunk-by-chunk basis.
 - **Glossary & Terminology Management**: Project-specific term glossaries ensure consistent translation of characters, locations, and unique terms across chapters.
 - **Kakuyomu Novel Loader**: Directly retrieves web novels from Kakuyomu (using `kakuyomu-loader`) and automatically structures them local chapter files.
