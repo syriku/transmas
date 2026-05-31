@@ -129,6 +129,17 @@ func (a *AgentService) UpdateProjectDir(title string, dir string) error {
 	return agent.UpdateProjectDir(title, dir)
 }
 
+func (a *AgentService) DeleteProject(title string) error {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return fmt.Errorf("log in first please")
+	}
+	return agent.DeleteProject(title)
+}
+
 func (a *AgentService) ListChapters(projectName string) ([]database.Chapter, error) {
 	a.mu.RLock()
 	agent := a.agent
@@ -160,6 +171,17 @@ func (a *AgentService) UpdateChapterTitle(projectName string, order uint, title 
 		return fmt.Errorf("log in first please")
 	}
 	return agent.UpdateChapterTitle(projectName, order, title)
+}
+
+func (a *AgentService) DeleteChapter(projectName string, order uint) error {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return fmt.Errorf("log in first please")
+	}
+	return agent.DeleteChapter(projectName, order)
 }
 
 func (a *AgentService) GetGlossary(projectName string) ([]request.GlossaryEntry, error) {

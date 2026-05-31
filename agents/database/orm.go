@@ -81,3 +81,25 @@ func FetchProjectGlossary(db *gorm.DB, owner string, proj string) ([]request.Glo
 	err := db.Where(&ProjectInfo{Owner: owner, Title: proj}).First(&project).Error
 	return project.Glossary, err
 }
+
+func DeleteProject(db *gorm.DB, owner string, title string) error {
+	var project ProjectInfo
+	if err := db.Where(&ProjectInfo{Owner: owner, Title: title}).First(&project).Error; err != nil {
+		return err
+	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		// Hard delete all chapters belonging to the project
+		if err := tx.Unscoped().Where(&Chapter{Project: project.ID}).Delete(&Chapter{}).Error; err != nil {
+			return err
+		}
+		// Hard delete the project itself
+		if err := tx.Unscoped().Delete(&project).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
+func DeleteChapter(db *gorm.DB, projectID uint, order uint) error {
+	return db.Unscoped().Where(&Chapter{Project: projectID, Order: order}).Delete(&Chapter{}).Error
+}

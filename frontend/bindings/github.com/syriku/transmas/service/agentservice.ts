@@ -40,6 +40,14 @@ export function CreateReusableTranslator(projectName: string, model: string): $C
     return $Call.ByID(62254862, projectName, model);
 }
 
+export function DeleteChapter(projectName: string, order: number): $CancellablePromise<void> {
+    return $Call.ByID(1109737583, projectName, order);
+}
+
+export function DeleteProject(title: string): $CancellablePromise<void> {
+    return $Call.ByID(991347567, title);
+}
+
 export function DestroyReusableTranslator(handle: number): $CancellablePromise<void> {
     return $Call.ByID(3949364470, handle);
 }

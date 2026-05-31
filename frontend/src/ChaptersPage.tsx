@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import ItemCard from './widgets/ItemCard'
@@ -10,6 +10,7 @@ import {
   ListProjects,
   UpdateProjectDir,
   GetChapterStatus,
+  DeleteChapter,
 } from '../bindings/github.com/syriku/transmas/service/agentservice'
 // @ts-ignore
 import {
@@ -28,7 +29,7 @@ const ChaptersPage: React.FC = () => {
   const { t } = useTranslation()
   const { projectName } = useParams<{ projectName: string }>()
   const [chapters, setChapters] = useState<Chapter[]>([])
-  const [chapterStatuses, setChapterStatuses] = useState<Record<number, number>>({})
+  const [chapterStatuses, setChapterStatuses] = useState<Map<number, number>>(new Map())
   const [workDir, setWorkDir] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -44,6 +45,33 @@ const ChaptersPage: React.FC = () => {
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
   const navigate = useNavigate()
   const { currentProject, setCurrentProject, setCurrentChapter } = useApp()
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    x: number
+    y: number
+    chapter: Chapter
+  } | null>(null)
+  const contextMenuRef = useRef<HTMLDivElement>(null)
+
+  // Delete modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteCountdown, setDeleteCountdown] = useState(4)
+  const [deleteTarget, setDeleteTarget] = useState<Chapter | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+
+  useEffect(() => {
+    let timer: any
+    if (showDeleteModal && deleteCountdown > 0) {
+      timer = setInterval(() => {
+        setDeleteCountdown((prev) => prev - 1)
+      }, 1000)
+    }
+    return () => {
+      if (timer) clearInterval(timer)
+    }
+  }, [showDeleteModal, deleteCountdown])
 
   useEffect(() => {
     if (isModalOpen && workDir) {
@@ -96,13 +124,13 @@ const ChaptersPage: React.FC = () => {
       console.log('Chapters fetched:', list)
       setChapters(list || [])
 
-      const statuses: Record<number, number> = {}
+      const statuses = new Map<number, number>()
       if (list && list.length > 0) {
         await Promise.all(
           list.map(async (c) => {
             try {
               const status = await GetChapterStatus(projectName, c.Order)
-              statuses[c.Order] = status
+              statuses.set(c.Order, status)
             } catch (err) {
               console.error(`Failed to fetch status for chapter ${c.Order}:`, err)
             }
@@ -122,6 +150,19 @@ const ChaptersPage: React.FC = () => {
     fetchChapters().then()
     fetchProjectDetails().then()
   }, [projectName])
+
+  // Close context menu on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        setContextMenu(null)
+      }
+    }
+    if (contextMenu) {
+      document.addEventListener('mousedown', handleClick)
+    }
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [contextMenu])
 
   const handleSelectWorkDir = async () => {
     if (!projectName) return
@@ -185,6 +226,42 @@ const ChaptersPage: React.FC = () => {
   const handleChapterClick = (chapter: Chapter) => {
     setCurrentChapter(chapter)
     navigate(`/editor?project=${encodeURIComponent(projectName || '')}&chapter=${chapter.Order}`)
+  }
+
+  const handleContextMenu = (e: React.MouseEvent, chapter: Chapter) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const MENU_W = 160
+    const MENU_H = 44
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    const x = Math.min(Math.max(e.clientX, 0), vw - MENU_W - 4)
+    const y = Math.min(Math.max(e.clientY, 0), vh - MENU_H - 4)
+    setContextMenu({ x, y, chapter })
+  }
+
+  const openDeleteModal = (chapter: Chapter) => {
+    setDeleteTarget(chapter)
+    setDeleteCountdown(4)
+    setDeleteError('')
+    setDeleting(false)
+    setShowDeleteModal(true)
+    setContextMenu(null)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!projectName || !deleteTarget || deleteCountdown > 0 || deleting) return
+    setDeleting(true)
+    setDeleteError('')
+    try {
+      await DeleteChapter(projectName, deleteTarget.Order)
+      setShowDeleteModal(false)
+      await fetchChapters()
+    } catch (err: any) {
+      setDeleteError(err.message || t('failedToDeleteChapter'))
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
@@ -342,7 +419,8 @@ const ChaptersPage: React.FC = () => {
                   title={t('chapterN', { n: chapter.Order })}
                   hoverTitle={`${chapter.Order}. ${chapter.Title}`}
                   onClick={() => handleChapterClick(chapter)}
-                  status={chapterStatuses[chapter.Order]}
+                  onContextMenu={(e) => handleContextMenu(e, chapter)}
+                  status={chapterStatuses.get(chapter.Order)}
                 />
               ))}
             <ItemCard
@@ -676,6 +754,209 @@ const ChaptersPage: React.FC = () => {
             await fetchChapters()
           }}
         />
+      )}
+      {/* Right-click context menu */}
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          style={{
+            position: 'fixed',
+            top: contextMenu.y,
+            left: contextMenu.x,
+            backgroundColor: 'white',
+            border: '1px solid #e0e0e0',
+            borderRadius: '8px',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+            zIndex: 2000,
+            minWidth: '140px',
+            padding: '4px',
+            boxSizing: 'border-box',
+          }}
+        >
+          <button
+            onClick={() => openDeleteModal(contextMenu.chapter)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              width: '100%',
+              boxSizing: 'border-box',
+              margin: 0,
+              padding: '8px 12px',
+              background: 'transparent',
+              border: 'none',
+              borderRadius: '4px',
+              textAlign: 'left',
+              cursor: 'pointer',
+              fontSize: '14px',
+              color: '#dc3545',
+              lineHeight: '1.4',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#fff5f5')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            {t('delete', 'Delete')}
+          </button>
+        </div>
+      )}
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && deleteTarget && (
+        <div
+          className="modal-backdrop"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 3000,
+          }}
+          onClick={() => !deleting && setShowDeleteModal(false)}
+        >
+          <div
+            className="modal-content"
+            style={{
+              backgroundColor: 'white',
+              padding: '32px',
+              borderRadius: '16px',
+              width: '90%',
+              maxWidth: '440px',
+              boxShadow:
+                '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+              boxSizing: 'border-box',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#dc3545"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ marginBottom: '16px' }}
+            >
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+
+            <h2
+              style={{
+                marginTop: 0,
+                marginBottom: '12px',
+                fontSize: '20px',
+                fontWeight: '600',
+                color: '#1a1a1a',
+              }}
+            >
+              {t('deleteChapterTitle')}
+            </h2>
+
+            <p
+              style={{
+                fontSize: '14px',
+                lineHeight: '1.6',
+                color: '#666',
+                margin: '0 0 8px 0',
+              }}
+            >
+              {t('deleteWarningTextChapter')}
+            </p>
+
+            <p
+              style={{
+                fontSize: '15px',
+                fontWeight: '600',
+                color: '#333',
+                margin: '0 0 24px 0',
+              }}
+            >
+              {deleteTarget.Title}
+            </p>
+
+            {deleteError && (
+              <p style={{ color: '#dc3545', fontSize: '13px', margin: '0 0 16px 0' }}>
+                {deleteError}
+              </p>
+            )}
+
+            <div
+              style={{
+                display: 'flex',
+                width: '100%',
+                gap: '12px',
+              }}
+            >
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setShowDeleteModal(false)}
+                style={{
+                  flex: 1,
+                  height: '40px',
+                  backgroundColor: '#f3f4f6',
+                  color: '#4b5563',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: deleting ? 'not-allowed' : 'pointer',
+                  transition: 'background-color 0.2s',
+                }}
+                onMouseOver={(e) => {
+                  if (!deleting) e.currentTarget.style.backgroundColor = '#e5e7eb'
+                }}
+                onMouseOut={(e) => {
+                  if (!deleting) e.currentTarget.style.backgroundColor = '#f3f4f6'
+                }}
+              >
+                {t('cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={deleteCountdown > 0 || deleting}
+                onClick={handleConfirmDelete}
+                style={{
+                  flex: 1,
+                  height: '40px',
+                  backgroundColor: deleteCountdown > 0 || deleting ? '#fca5a5' : '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: deleteCountdown > 0 || deleting ? 'not-allowed' : 'pointer',
+                  transition: 'background-color 0.2s',
+                }}
+                onMouseOver={(e) => {
+                  if (deleteCountdown === 0 && !deleting)
+                    e.currentTarget.style.backgroundColor = '#b91c1c'
+                }}
+                onMouseOut={(e) => {
+                  if (deleteCountdown === 0 && !deleting)
+                    e.currentTarget.style.backgroundColor = '#dc3545'
+                }}
+              >
+                {deleting
+                  ? t('saving')
+                  : deleteCountdown > 0
+                    ? t('confirmWithCountdown', { seconds: deleteCountdown })
+                    : t('confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
