@@ -3,7 +3,7 @@ module github.com/syriku/transmas
 go 1.25
 
 require (
-	github.com/syriku/aisdk v1.0.0-alpha.11
+	github.com/syriku/aisdk v1.0.0-alpha.12
 	github.com/syriku/kakuyomu-loader v1.0.0-alpha.5
 	github.com/syriku/quill-delta v1.0.0-alpha.2
 	github.com/wailsapp/wails/v3 v3.0.0-alpha.91

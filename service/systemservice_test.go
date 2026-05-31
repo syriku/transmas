@@ -27,24 +27,6 @@ func TestSystemService_GetModels_Unsupported(t *testing.T) {
 	}
 }
 
-func TestSystemService_GetModels_NotImplemented(t *testing.T) {
-	s := NewSystemService()
-
-	// Test CLAUDE (not implemented)
-	config := api.UserConfig{
-		Type: api.API_TYPE_CLAUDE,
-	}
-
-	_, err := s.GetModels(config)
-	if err == nil {
-		t.Fatal("expected error for Claude models API not implemented, got nil")
-	}
-
-	if !strings.Contains(err.Error(), "models API is not implemented") {
-		t.Errorf("expected error message to contain 'models API is not implemented', got: %v", err)
-	}
-}
-
 func TestSystemService_DeleteUserData(t *testing.T) {
 	// Create a temp directory for AppPath
 	tmpDir, err := os.MkdirTemp("", "transmas_test_*")

@@ -111,8 +111,8 @@ github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXf
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
-github.com/syriku/aisdk v1.0.0-alpha.11 h1:IuMlpJCwWX4iGEf0xHPYUazZhkcHwi9rI/qfyJCrr24=
-github.com/syriku/aisdk v1.0.0-alpha.11/go.mod h1:GCqF0iyfmabEkuACIpza9UioaIgHhW/lLaPhGIUdOzE=
+github.com/syriku/aisdk v1.0.0-alpha.12 h1:oihvaBKAVnieWaEby8XNwHNxxgPJ3MUqkk0EkS7zOGk=
+github.com/syriku/aisdk v1.0.0-alpha.12/go.mod h1:GCqF0iyfmabEkuACIpza9UioaIgHhW/lLaPhGIUdOzE=
 github.com/syriku/kakuyomu-loader v1.0.0-alpha.5 h1:AzNlc+3ftizqqkImQc2hEAcUmzeDE/ogBGxO4EB7wYU=
 github.com/syriku/kakuyomu-loader v1.0.0-alpha.5/go.mod h1:8Ps9ExocIeJdr/mby5BHTOb5Ip/UKTBx+fr6VXtXZuU=
 github.com/syriku/quill-delta v1.0.0-alpha.2 h1:CLVagWnQ7Dx6pVOQPObulKIP1ZtQj0avyzrl8YDHsjM=
