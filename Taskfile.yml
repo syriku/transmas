@@ -26,6 +26,16 @@ tasks:
     cmds:
       - task: "{{OS}}:package"
 
+  package:windows:
+    summary: Packages a production build of the application for Windows with CGO enabled
+    deps:
+      - task: licenses:collect
+    cmds:
+      - task: windows:package
+        vars:
+          CGO_ENABLED: "1"
+          ARCH: "{{.ARCH | default ARCH}}"
+
   run:
     summary: Runs the application
     cmds:
