@@ -98,6 +98,16 @@ const resources = {
       renaming: 'Renaming...',
       confirm: 'Confirm',
       failedToRenameProject: 'Failed to rename project: ',
+      confirmDeleteProject: 'Are you sure you want to delete project: ',
+      failedToDeleteProject: 'Failed to delete project: ',
+      confirmDeleteChapter: 'Are you sure you want to delete chapter: ',
+      failedToDeleteChapter: 'Failed to delete chapter: ',
+      deleteWarningText:
+        'The recorded data does not take up much space. Unless necessary, it is not recommended to delete. Do you still want to delete the project?',
+      deleteWarningTextChapter:
+        'The recorded data does not take up much space. Unless necessary, it is not recommended to delete. Do you still want to delete the chapter?',
+      deleteProjectTitle: 'Confirm Delete Project',
+      deleteChapterTitle: 'Confirm Delete Chapter',
       systemSettings: 'System Settings',
       enableWebExtension: 'Enable Web Extension Support',
 
@@ -234,6 +244,16 @@ const resources = {
       renaming: '重命名中...',
       confirm: '确认',
       failedToRenameProject: '重命名项目失败: ',
+      confirmDeleteProject: '您确定要删除项目吗: ',
+      failedToDeleteProject: '删除项目失败: ',
+      confirmDeleteChapter: '您确定要删除章节吗: ',
+      failedToDeleteChapter: '删除章节失败: ',
+      deleteWarningText:
+        '记录的数据并不占用太多的空间，如果不是必要的话，不建议删除。您还是想要删除项目吗？',
+      deleteWarningTextChapter:
+        '记录的数据并不占用太多的空间，如果不是必要的话，不建议删除。您还是想要删除章节吗？',
+      deleteProjectTitle: '确认删除项目',
+      deleteChapterTitle: '确认删除章节',
       systemSettings: '系统设置',
       enableWebExtension: '启用网页插件支持',
 
