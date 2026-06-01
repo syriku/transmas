@@ -123,10 +123,7 @@ func PartitionTranslatedDelta(translatedDelta *quilldelta.Delta, originalChunks 
 		if i == len(originalChunks)-1 {
 			limit = numTranslatedBlocks
 		} else {
-			limit = blockIdx + numBlocks
-			if limit > numTranslatedBlocks {
-				limit = numTranslatedBlocks
-			}
+			limit = min(blockIdx+numBlocks, numTranslatedBlocks)
 		}
 
 		for blockIdx < limit {
