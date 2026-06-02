@@ -1,0 +1,18 @@
+#!/bin/sh
+# zig cc wrapper for Windows amd64 cross-compilation.
+# CGO passes -Wl,* linker flags and sometimes -target that zig cc cannot handle
+# for Windows targets, so we strip them here.
+ARGS=""
+SKIP_NEXT=0
+for arg in "$@"; do
+    if [ $SKIP_NEXT -eq 1 ]; then
+        SKIP_NEXT=0
+        continue
+    fi
+    case "$arg" in
+        -target) SKIP_NEXT=1 ;;
+        -Wl,*) ;;
+        *) ARGS="$ARGS $arg" ;;
+    esac
+done
+exec zig cc -fno-sanitize=all -target x86_64-windows-gnu $ARGS
