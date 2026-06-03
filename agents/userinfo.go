@@ -8,7 +8,7 @@ import (
 
 type ProjectAgent interface {
 	ListProjects() ([]database.ProjectInfo, error)
-	AddProject(title string) error
+	AddProject(title string, projectType database.ProjectType) error
 	RenameProject(oldTitle string, newTitle string) error
 	UpdateProjectDir(title string, dir string) error
 	GetGlossary(title string) ([]request.GlossaryEntry, error)
@@ -27,10 +27,11 @@ func listProjects(db *gorm.DB, user string) ([]database.ProjectInfo, error) {
 	return database.FetchProjectsByOwner(db, user)
 }
 
-func addProject(db *gorm.DB, user string, title string) error {
+func addProject(db *gorm.DB, user string, title string, projectType database.ProjectType) error {
 	return database.AddProject(db, &database.ProjectInfo{
-		Title: title,
-		Owner: user,
+		Title:       title,
+		Owner:       user,
+		ProjectType: projectType,
 	})
 }
 

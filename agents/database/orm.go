@@ -2,6 +2,7 @@ package database
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path"
 
@@ -13,11 +14,11 @@ import (
 
 func ConnectDB() (*gorm.DB, error) {
 	cfg := config.GetGlobalConfig()
-	err := os.MkdirAll(cfg.AppPath, 0755)
+	dbPath := path.Join(cfg.AppPath, "prototype", "manga", "savedata.db")
+	err := os.MkdirAll(path.Dir(dbPath), 0755)
 	if err != nil {
 		return nil, err
 	}
-	dbPath := path.Join(cfg.AppPath, "prototype", "manga", "savedata.db")
 
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	if err != nil {
@@ -55,16 +56,37 @@ func RenameProject(db *gorm.DB, owner string, oldTitle string, newTitle string) 
 }
 
 func AddChapter(db *gorm.DB, chapter *Chapter) error {
+	var proj ProjectInfo
+	if err := db.First(&proj, chapter.Project).Error; err != nil {
+		return err
+	}
+	if proj.ProjectType != ProjectTypeNovel {
+		return errors.New("project is not a novel project")
+	}
 	return db.Create(chapter).Error
 }
 
 func FetchChaptersByProject(db *gorm.DB, projectID uint) ([]Chapter, error) {
+	var proj ProjectInfo
+	if err := db.First(&proj, projectID).Error; err != nil {
+		return nil, err
+	}
+	if proj.ProjectType != ProjectTypeNovel {
+		return nil, errors.New("project is not a novel project")
+	}
 	var chapters []Chapter
 	err := db.Where(&Chapter{Project: projectID}).Find(&chapters).Error
 	return chapters, err
 }
 
 func UpdateChapterTitle(db *gorm.DB, projectID uint, order uint, title string) error {
+	var proj ProjectInfo
+	if err := db.First(&proj, projectID).Error; err != nil {
+		return err
+	}
+	if proj.ProjectType != ProjectTypeNovel {
+		return errors.New("project is not a novel project")
+	}
 	return db.Model(&Chapter{}).Where(&Chapter{Project: projectID, Order: order}).Update("title", title).Error
 }
 
@@ -101,5 +123,12 @@ func DeleteProject(db *gorm.DB, owner string, title string) error {
 }
 
 func DeleteChapter(db *gorm.DB, projectID uint, order uint) error {
+	var proj ProjectInfo
+	if err := db.First(&proj, projectID).Error; err != nil {
+		return err
+	}
+	if proj.ProjectType != ProjectTypeNovel {
+		return errors.New("project is not a novel project")
+	}
 	return db.Unscoped().Where(&Chapter{Project: projectID, Order: order}).Delete(&Chapter{}).Error
 }

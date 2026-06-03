@@ -3,5 +3,6 @@
 
 export {
     Chapter,
-    ProjectInfo
+    ProjectInfo,
+    ProjectType
 } from "./models.js";

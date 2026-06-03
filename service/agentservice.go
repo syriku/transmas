@@ -96,7 +96,7 @@ func (a *AgentService) ListProjects() ([]database.ProjectInfo, error) {
 	return agent.ListProjects()
 }
 
-func (a *AgentService) AddProject(title string) error {
+func (a *AgentService) AddProject(title string, projectType database.ProjectType) error {
 	a.mu.RLock()
 	agent := a.agent
 	a.mu.RUnlock()
@@ -104,7 +104,7 @@ func (a *AgentService) AddProject(title string) error {
 	if agent == nil {
 		return fmt.Errorf("log in first please")
 	}
-	return agent.AddProject(title)
+	return agent.AddProject(title, projectType)
 }
 
 func (a *AgentService) RenameProject(oldTitle string, newTitle string) error {

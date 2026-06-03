@@ -28,8 +28,8 @@ export function AddChapter(projectName: string, order: number, title: string): $
     return $Call.ByID(1975024133, projectName, order, title);
 }
 
-export function AddProject(title: string): $CancellablePromise<void> {
-    return $Call.ByID(2282190357, title);
+export function AddProject(title: string, projectType: database$0.ProjectType): $CancellablePromise<void> {
+    return $Call.ByID(2282190357, title, projectType);
 }
 
 export function CancelTranslation(handle: string): $CancellablePromise<void> {

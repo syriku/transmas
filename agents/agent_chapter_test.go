@@ -58,7 +58,7 @@ func TestTranslateAgentImpl_ReadChapterAndPageTurning(t *testing.T) {
 		t.Fatalf("failed to create translate agent: %v", err)
 	}
 
-	err = agent.AddProject(projectName)
+	err = agent.AddProject(projectName, database.ProjectTypeNovel)
 	if err != nil {
 		t.Fatalf("failed to add project: %v", err)
 	}
@@ -184,7 +184,7 @@ func TestTranslateAgentImpl_SaveChapter(t *testing.T) {
 		t.Fatalf("failed to create translate agent: %v", err)
 	}
 
-	err = agent.AddProject(projectName)
+	err = agent.AddProject(projectName, database.ProjectTypeNovel)
 	if err != nil {
 		t.Fatalf("failed to add project: %v", err)
 	}
@@ -344,7 +344,7 @@ func TestTranslateAgentImpl_HandlesAndTranslation(t *testing.T) {
 		t.Fatalf("failed to create translate agent: %v", err)
 	}
 
-	err = agent.AddProject(projectName)
+	err = agent.AddProject(projectName, database.ProjectTypeNovel)
 	if err != nil {
 		t.Fatalf("failed to add project: %v", err)
 	}
@@ -528,7 +528,7 @@ func TestTranslateAgentImpl_ReviewedContextLogic(t *testing.T) {
 		t.Fatalf("failed to create agent: %v", err)
 	}
 
-	_ = agent.AddProject(projectName)
+	_ = agent.AddProject(projectName, database.ProjectTypeNovel)
 	_ = agent.UpdateProjectDir(projectName, tmpDir)
 	_ = agent.AddChapter(projectName, 1, "chap1")
 
@@ -634,7 +634,7 @@ func TestTranslateAgentImpl_GetChapterStatus(t *testing.T) {
 		t.Fatalf("failed to create translate agent: %v", err)
 	}
 
-	err = agent.AddProject(projectName)
+	err = agent.AddProject(projectName, database.ProjectTypeNovel)
 	if err != nil {
 		t.Fatalf("failed to add project: %v", err)
 	}
@@ -736,7 +736,7 @@ func TestTranslateAgentImpl_DeleteProjectAndChapter(t *testing.T) {
 	}
 
 	// Add project
-	err = agent.AddProject(projectName)
+	err = agent.AddProject(projectName, database.ProjectTypeNovel)
 	if err != nil {
 		t.Fatalf("failed to add project: %v", err)
 	}
@@ -818,7 +818,7 @@ func TestTranslateAgentImpl_DeleteProjectAndChapter(t *testing.T) {
 	}
 
 	// Verify we can re-create project without unique constraint conflict
-	err = agent.AddProject(projectName)
+	err = agent.AddProject(projectName, database.ProjectTypeNovel)
 	if err != nil {
 		t.Errorf("failed to recreate project after deletion: %v", err)
 	}

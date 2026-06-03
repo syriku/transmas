@@ -45,7 +45,7 @@ func TestSystemService_DeleteUserData(t *testing.T) {
 		t.Fatalf("expected nil error when no database exists, got: %v", err)
 	}
 
-	dbPath := filepath.Join(tmpDir, "savedata.db")
+	dbPath := filepath.Join(tmpDir, "prototype", "manga", "savedata.db")
 
 	// 2. Since we want to test when logged in, let's set up an active agent.
 	agentService := NewAgentService()

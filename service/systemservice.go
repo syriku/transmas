@@ -25,7 +25,7 @@ func (s *SystemService) DeleteUserData() error {
 	}
 
 	cfg := config.GetGlobalConfig()
-	dbPath := filepath.Join(cfg.AppPath, "savedata.db")
+	dbPath := filepath.Join(cfg.AppPath, "prototype", "manga", "savedata.db")
 
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
 		return nil

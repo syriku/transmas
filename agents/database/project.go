@@ -5,6 +5,13 @@ import (
 	"gorm.io/gorm"
 )
 
+type ProjectType int
+
+const (
+	ProjectTypeNovel ProjectType = iota
+	ProjectTypeComic
+)
+
 type ProjectInfo struct {
 	gorm.Model
 	Title         string `gorm:"uniqueIndex:idx_project_owner_title"`
@@ -13,6 +20,7 @@ type ProjectInfo struct {
 	Glossary      []request.GlossaryEntry `gorm:"serializer:json"`
 	TranslatorKey string
 	AiConfigKey   string
+	ProjectType   ProjectType
 }
 
 func UpdateProjectTranslatorKey(db *gorm.DB, owner string, proj string, translatorKey string) error {

@@ -510,8 +510,8 @@ func (i *translateAgentImpl) ListProjects() ([]database.ProjectInfo, error) {
 	return listProjects(i.db, i.userData.Username)
 }
 
-func (i *translateAgentImpl) AddProject(title string) error {
-	return addProject(i.db, i.userData.Username, title)
+func (i *translateAgentImpl) AddProject(title string, projectType database.ProjectType) error {
+	return addProject(i.db, i.userData.Username, title, projectType)
 }
 
 func (i *translateAgentImpl) RenameProject(oldTitle string, newTitle string) error {

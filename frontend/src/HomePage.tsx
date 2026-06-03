@@ -97,7 +97,7 @@ const HomePage: React.FC = () => {
     setIsCreating(true)
     try {
       console.log('Calling AddProject with:', newTitle.trim())
-      await AddProject(newTitle.trim())
+      await AddProject(newTitle.trim(), 0)
       console.log('AddProject successful')
       setNewTitle('')
       setIsModalOpen(false)
