@@ -17,7 +17,7 @@ func ConnectDB() (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	dbPath := path.Join(cfg.AppPath, "savedata.db")
+	dbPath := path.Join(cfg.AppPath, "prototype", "manga", "savedata.db")
 
 	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	if err != nil {
