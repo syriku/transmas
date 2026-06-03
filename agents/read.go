@@ -207,6 +207,12 @@ func (i *translateAgentImpl) GetChapterStatus(projectName string, chapterOrder u
 	if err != nil {
 		return meta.StatusUncompleted, fmt.Errorf("failed to fetch project: %w", err)
 	}
+	if proj.ProjectType == database.ProjectTypeComic {
+		if proj.WorkDir == "" {
+			return meta.StatusUncompleted, nil
+		}
+		return i.comicAgent.GetChapterStatus(proj.WorkDir, chapterOrder)
+	}
 	if proj.ProjectType != database.ProjectTypeNovel {
 		return meta.StatusUncompleted, fmt.Errorf("project is not a novel project")
 	}

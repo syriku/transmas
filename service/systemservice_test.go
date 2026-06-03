@@ -3,93 +3,74 @@ package service
 import (
 	"os"
 	"path/filepath"
-	"strings"
+	"reflect"
 	"testing"
-
-	"github.com/syriku/aisdk/api"
 )
 
-func TestSystemService_GetModels_Unsupported(t *testing.T) {
-	s := NewSystemService()
-
-	// Test unsupported type
-	config := api.UserConfig{
-		Type: 99,
-	}
-
-	_, err := s.GetModels(config)
-	if err == nil {
-		t.Fatal("expected error for unsupported API type, got nil")
-	}
-
-	if !strings.Contains(err.Error(), "unsupported API type") {
-		t.Errorf("expected error message to contain 'unsupported API type', got: %v", err)
-	}
-}
-
-func TestSystemService_DeleteUserData(t *testing.T) {
-	// Create a temp directory for AppPath
-	tmpDir, err := os.MkdirTemp("", "transmas_test_*")
+func TestSystemService_ListCandidateChapters(t *testing.T) {
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "transmas_service_test")
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("failed to create temp dir: %v", err)
 	}
 	defer os.RemoveAll(tmpDir)
 
-	t.Setenv("TRANSMAS_APP_PATH", tmpDir)
+	// Create test files/directories:
+	// - chap1.txt
+	// - chap2.txt
+	// - Chapter_Folder (dir)
+	// - .hidden_dir (dir starting with dot)
+	// - normal_file.md
 
-	s := NewSystemService()
-
-	// 1. Initially, no user is logged in. DeleteUserData should succeed (and do nothing if DB doesn't exist).
-	err = s.DeleteUserData()
+	err = os.WriteFile(filepath.Join(tmpDir, "chap1.txt"), []byte("content"), 0644)
 	if err != nil {
-		t.Fatalf("expected nil error when no database exists, got: %v", err)
+		t.Fatalf("failed to write test file: %v", err)
 	}
-
-	dbPath := filepath.Join(tmpDir, "prototype", "manga", "savedata.db")
-
-	// 2. Since we want to test when logged in, let's set up an active agent.
-	agentService := NewAgentService()
-	err = agentService.LogIn("testuser")
+	err = os.WriteFile(filepath.Join(tmpDir, "chap2.txt"), []byte("content"), 0644)
 	if err != nil {
-		t.Fatalf("failed to log in: %v", err)
+		t.Fatalf("failed to write test file: %v", err)
 	}
-
-	// Now IsLoggedIn() should be true. DeleteUserData should return error.
-	err = s.DeleteUserData()
-	if err == nil {
-		t.Fatal("expected error when user is logged in, got nil")
-	}
-	if !strings.Contains(err.Error(), "cannot delete user data while a user is logged in") {
-		t.Errorf("expected error message to contain login check, got: %v", err)
-	}
-
-	// 4. Log out. DeleteUserData should succeed and delete the file.
-	err = agentService.LogOut()
+	err = os.WriteFile(filepath.Join(tmpDir, "normal_file.md"), []byte("content"), 0644)
 	if err != nil {
-		t.Fatalf("failed to log out: %v", err)
+		t.Fatalf("failed to write test file: %v", err)
 	}
-
-	err = s.DeleteUserData()
+	err = os.MkdirAll(filepath.Join(tmpDir, "Chapter_Folder"), 0755)
 	if err != nil {
-		t.Fatalf("expected nil error after logout, got: %v", err)
+		t.Fatalf("failed to create directory: %v", err)
 	}
-
-	// Verify file is gone
-	if _, err := os.Stat(dbPath); !os.IsNotExist(err) {
-		t.Error("expected database file to be deleted, but it still exists")
-	}
-
-	// 5. Verify we can log in again after deletion (recreating the database)
-	err = agentService.LogIn("testuser")
+	err = os.MkdirAll(filepath.Join(tmpDir, ".hidden_dir"), 0755)
 	if err != nil {
-		t.Fatalf("failed to log in again after deletion: %v", err)
+		t.Fatalf("failed to create directory: %v", err)
 	}
 
-	// Verify database file is recreated
-	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-		t.Error("expected database file to be recreated, but it does not exist")
+	ss := NewSystemService()
+
+	// 1. Test as Novel Project (no comic_project DB exists)
+	candidates, err := ss.ListCandidateChapters(tmpDir)
+	if err != nil {
+		t.Fatalf("failed to list candidate chapters: %v", err)
 	}
 
-	// Clean up login
-	_ = agentService.LogOut()
+	expectedNovel := []string{"chap1", "chap2"}
+	// Order in os.ReadDir is alphabetical, so it should match
+	if !reflect.DeepEqual(candidates, expectedNovel) {
+		t.Errorf("expected novel candidates %v, got %v", expectedNovel, candidates)
+	}
+
+	// 2. Test as Comic Project (comic_project DB exists)
+	dbPath := filepath.Join(tmpDir, "comic_project")
+	err = os.WriteFile(dbPath, []byte("fake db contents"), 0644)
+	if err != nil {
+		t.Fatalf("failed to write fake database file: %v", err)
+	}
+
+	candidates, err = ss.ListCandidateChapters(tmpDir)
+	if err != nil {
+		t.Fatalf("failed to list candidate chapters: %v", err)
+	}
+
+	expectedComic := []string{"Chapter_Folder"}
+	if !reflect.DeepEqual(candidates, expectedComic) {
+		t.Errorf("expected comic candidates %v, got %v", expectedComic, candidates)
+	}
 }

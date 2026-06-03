@@ -823,3 +823,117 @@ func TestTranslateAgentImpl_DeleteProjectAndChapter(t *testing.T) {
 		t.Errorf("failed to recreate project after deletion: %v", err)
 	}
 }
+
+func TestTranslateAgentImpl_ComicProject(t *testing.T) {
+	// 1. Setup temporary directory for workspace
+	tmpDir, err := os.MkdirTemp("", "transmas_comic_agent_test")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create a subdirectory inside tmpDir to act as a chapter candidate
+	chapDirName := "Chapter_1"
+	err = os.MkdirAll(filepath.Join(tmpDir, chapDirName), 0755)
+	if err != nil {
+		t.Fatalf("failed to create chap dir: %v", err)
+	}
+
+	// 2. Setup in-memory SQLite DB
+	db, err := gorm.Open(sqlite.Open("file:memdb_comic?mode=memory&cache=shared"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("failed to open memory db: %v", err)
+	}
+	err = db.AutoMigrate(&database.UserData{}, &database.ProjectInfo{}, &database.Chapter{})
+	if err != nil {
+		t.Fatalf("failed to migrate db: %v", err)
+	}
+
+	username := "testuser"
+	projectName := "testcomicproject"
+
+	agent, err := NewTranslateAgent(db, username)
+	if err != nil {
+		t.Fatalf("failed to create translate agent: %v", err)
+	}
+
+	// 3. Add project (Comic type)
+	err = agent.AddProject(projectName, database.ProjectTypeComic)
+	if err != nil {
+		t.Fatalf("failed to add project: %v", err)
+	}
+
+	// 4. Set directory
+	err = agent.UpdateProjectDir(projectName, tmpDir)
+	if err != nil {
+		t.Fatalf("failed to update project workdir: %v", err)
+	}
+
+	// Verify that the comic_project database file exists
+	dbFile := filepath.Join(tmpDir, "comic_project")
+	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
+		t.Fatalf("expected comic_project database file to exist, but it does not")
+	}
+
+	// 5. Add chapter (Comic)
+	err = agent.AddChapter(projectName, 1, chapDirName)
+	if err != nil {
+		t.Fatalf("failed to add chapter: %v", err)
+	}
+
+	// 6. List chapters
+	chapters, err := agent.ListChapters(projectName)
+	if err != nil {
+		t.Fatalf("failed to list chapters: %v", err)
+	}
+	if len(chapters) != 1 {
+		t.Fatalf("expected 1 chapter, got %d", len(chapters))
+	}
+	if chapters[0].Title != chapDirName || chapters[0].Order != 1 {
+		t.Errorf("unexpected chapter details: %+v", chapters[0])
+	}
+
+	// 7. Get chapter status
+	status, err := agent.GetChapterStatus(projectName, 1)
+	if err != nil {
+		t.Fatalf("failed to get status: %v", err)
+	}
+	if status != meta.StatusUncompleted {
+		t.Errorf("expected StatusUncompleted, got %v", status)
+	}
+
+	// 8. Update chapter title
+	newTitle := "Chapter 1 - The Beginning"
+	err = agent.UpdateChapterTitle(projectName, 1, newTitle)
+	if err != nil {
+		t.Fatalf("failed to update chapter title: %v", err)
+	}
+
+	chapters, err = agent.ListChapters(projectName)
+	if err != nil {
+		t.Fatalf("failed to list chapters: %v", err)
+	}
+	if len(chapters) != 1 || chapters[0].Title != newTitle {
+		t.Errorf("expected chapter title to be updated to %q, got %+v", newTitle, chapters)
+	}
+
+	// 9. Delete chapter
+	err = agent.DeleteChapter(projectName, 1)
+	if err != nil {
+		t.Fatalf("failed to delete chapter: %v", err)
+	}
+
+	chapters, err = agent.ListChapters(projectName)
+	if err != nil {
+		t.Fatalf("failed to list chapters: %v", err)
+	}
+	if len(chapters) != 0 {
+		t.Errorf("expected chapters to be empty after deletion, got %+v", chapters)
+	}
+
+	// 10. Delete project
+	err = agent.DeleteProject(projectName)
+	if err != nil {
+		t.Fatalf("failed to delete project: %v", err)
+	}
+}

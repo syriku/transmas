@@ -14,7 +14,9 @@ import (
 	"github.com/syriku/aisdk/api"
 	"github.com/syriku/aisdk/request"
 	"github.com/syriku/aisdk/session"
+	"github.com/syriku/label-go/comic"
 	"github.com/syriku/quill-delta/quilldelta"
+	"github.com/syriku/transmas/agents/comicagents"
 	"github.com/syriku/transmas/agents/database"
 	"github.com/syriku/transmas/agents/meta"
 	"github.com/syriku/transmas/server"
@@ -96,6 +98,7 @@ type translateAgentImpl struct {
 	webMu             sync.Mutex
 	serverRunning     bool
 	webServer         server.TransmasClient
+	comicAgent        comicagents.ComicAgent
 }
 
 var (
@@ -126,6 +129,7 @@ func newTranslateAgentImpl(db *gorm.DB, username string) (*translateAgentImpl, e
 			return nil, err
 		}
 	}
+	impl.comicAgent = comicagents.NewComicAgent()
 	return impl, nil
 }
 
@@ -519,7 +523,25 @@ func (i *translateAgentImpl) RenameProject(oldTitle string, newTitle string) err
 }
 
 func (i *translateAgentImpl) UpdateProjectDir(title string, dir string) error {
-	return updateProjectDir(i.db, i.userData.Username, title, dir)
+	err := updateProjectDir(i.db, i.userData.Username, title, dir)
+	if err != nil {
+		return err
+	}
+
+	proj, err := database.FetchProjectByOwnerAndTitle(i.db, i.userData.Username, title)
+	if err != nil {
+		return err
+	}
+	if proj.ProjectType == database.ProjectTypeComic && dir != "" {
+		err = i.comicAgent.EnsureProject(comicagents.NewComic(func(wc *comic.WorkComic) {
+			wc.Title = proj.Title
+			wc.WorkDir = dir
+		}))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (i *translateAgentImpl) GetGlossary(title string) ([]request.GlossaryEntry, error) {
@@ -535,18 +557,79 @@ func (i *translateAgentImpl) DeleteProject(title string) error {
 }
 
 func (i *translateAgentImpl) ListChapters(projectName string) ([]database.Chapter, error) {
+	proj, err := database.FetchProjectByOwnerAndTitle(i.db, i.userData.Username, projectName)
+	if err != nil {
+		return nil, err
+	}
+	if proj.ProjectType == database.ProjectTypeComic {
+		if proj.WorkDir == "" {
+			return nil, nil
+		}
+		// Ensure database is initialized
+		err = i.comicAgent.EnsureProject(comicagents.NewComic(func(wc *comic.WorkComic) {
+			wc.Title = proj.Title
+			wc.WorkDir = proj.WorkDir
+		}))
+		if err != nil {
+			return nil, err
+		}
+		comicChapters, err := i.comicAgent.ListChapters(proj.WorkDir)
+		if err != nil {
+			return nil, err
+		}
+		var result []database.Chapter
+		for _, ch := range comicChapters {
+			result = append(result, database.Chapter{
+				Model:   ch.Model,
+				Order:   ch.Order,
+				Title:   ch.Title,
+				Project: proj.ID,
+			})
+		}
+		return result, nil
+	}
 	return listChapters(i.db, i.userData.Username, projectName)
 }
 
 func (i *translateAgentImpl) AddChapter(projectName string, order uint, title string) error {
+	proj, err := database.FetchProjectByOwnerAndTitle(i.db, i.userData.Username, projectName)
+	if err != nil {
+		return err
+	}
+	if proj.ProjectType == database.ProjectTypeComic {
+		if proj.WorkDir == "" {
+			return fmt.Errorf("project work directory not set")
+		}
+		return i.comicAgent.AddChapter(proj.WorkDir, order, title)
+	}
 	return addChapter(i.db, i.userData.Username, projectName, order, title)
 }
 
 func (i *translateAgentImpl) UpdateChapterTitle(projectName string, order uint, title string) error {
+	proj, err := database.FetchProjectByOwnerAndTitle(i.db, i.userData.Username, projectName)
+	if err != nil {
+		return err
+	}
+	if proj.ProjectType == database.ProjectTypeComic {
+		if proj.WorkDir == "" {
+			return fmt.Errorf("project work directory not set")
+		}
+		return i.comicAgent.UpdateChapterTitle(proj.WorkDir, order, title)
+	}
 	return updateChapterTitle(i.db, i.userData.Username, projectName, order, title)
 }
 
 func (i *translateAgentImpl) DeleteChapter(projectName string, order uint) error {
+	proj, err := database.FetchProjectByOwnerAndTitle(i.db, i.userData.Username, projectName)
+	if err != nil {
+		return err
+	}
+	if proj.ProjectType == database.ProjectTypeComic {
+		if proj.WorkDir == "" {
+			return fmt.Errorf("project work directory not set")
+		}
+		return i.comicAgent.DeleteChapter(proj.WorkDir, order)
+	}
 	return deleteChapter(i.db, i.userData.Username, projectName, order)
 }
 

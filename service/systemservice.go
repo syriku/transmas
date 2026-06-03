@@ -58,15 +58,27 @@ func (s *SystemService) ListCandidateChapters(dir string) ([]string, error) {
 		return nil, err
 	}
 
+	// Check if this is a comic project directory
+	isComic := false
+	if _, err := os.Stat(filepath.Join(dir, "comic_project")); err == nil {
+		isComic = true
+	}
+
 	files := make([]string, 0)
 	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
 		name := entry.Name()
-		if filepath.Ext(name) == ".txt" {
-			base := strings.TrimSuffix(name, ".txt")
-			files = append(files, base)
+		if isComic {
+			if entry.IsDir() && !strings.HasPrefix(name, ".") {
+				files = append(files, name)
+			}
+		} else {
+			if entry.IsDir() {
+				continue
+			}
+			if filepath.Ext(name) == ".txt" {
+				base := strings.TrimSuffix(name, ".txt")
+				files = append(files, base)
+			}
 		}
 	}
 	return files, nil
