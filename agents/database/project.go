@@ -20,7 +20,7 @@ type ProjectInfo struct {
 	Glossary      []request.GlossaryEntry `gorm:"serializer:json"`
 	TranslatorKey string
 	AiConfigKey   string
-	ProjectType   ProjectType
+	ProjectType   ProjectType `gorm:"not null;default:0"`
 }
 
 func UpdateProjectTranslatorKey(db *gorm.DB, owner string, proj string, translatorKey string) error {
