@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import ItemCard from './widgets/ItemCard'
 import UserSettingsModal from './widgets/UserSettingsModal'
+import AddProjectModal from './widgets/AddProjectModal'
 // @ts-ignore
 import {
   ListProjects,
-  AddProject,
   RenameProject,
   DeleteProject,
 } from '../bindings/github.com/syriku/transmas/service/agentservice'
@@ -21,8 +21,6 @@ const HomePage: React.FC = () => {
   const [error, setError] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
-  const [newTitle, setNewTitle] = useState('')
-  const [isCreating, setIsCreating] = useState(false)
   const navigate = useNavigate()
   const { setCurrentProject, logout } = useApp()
 
@@ -90,25 +88,6 @@ const HomePage: React.FC = () => {
     }
     return () => document.removeEventListener('mousedown', handleClick)
   }, [contextMenu])
-
-  const handleAddProject = async () => {
-    if (!newTitle.trim()) return
-
-    setIsCreating(true)
-    try {
-      console.log('Calling AddProject with:', newTitle.trim())
-      await AddProject(newTitle.trim(), 0)
-      console.log('AddProject successful')
-      setNewTitle('')
-      setIsModalOpen(false)
-      await fetchProjects()
-    } catch (err: any) {
-      console.error('Failed to add project:', err)
-      alert(t('failedToAddProject') + err.message)
-    } finally {
-      setIsCreating(false)
-    }
-  }
 
   const handleProjectClick = (project: ProjectInfo) => {
     setCurrentProject(project)
@@ -312,6 +291,7 @@ const HomePage: React.FC = () => {
               <ItemCard
                 key={project.ID}
                 title={project.Title}
+                projectType={project.ProjectType}
                 onClick={() => handleProjectClick(project)}
                 onContextMenu={(e) => handleContextMenu(e, project)}
               />
@@ -395,103 +375,13 @@ const HomePage: React.FC = () => {
 
       {/* Custom Modal for Adding Project */}
       {isModalOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
+        <AddProjectModal
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={async () => {
+            setIsModalOpen(false)
+            await fetchProjects()
           }}
-          onClick={() => !isCreating && setIsModalOpen(false)}
-        >
-          <div
-            style={{
-              backgroundColor: 'white',
-              padding: '30px',
-              borderRadius: '16px',
-              width: '400px',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 style={{ margin: '0 0 20px 0' }}>{t('newProject')}</h2>
-            <input
-              autoFocus
-              type="text"
-              placeholder={t('projectTitlePlaceholder')}
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                fontSize: '16px',
-                borderRadius: '8px',
-                border: '1px solid #ddd',
-                boxSizing: 'border-box',
-                outline: 'none',
-                marginBottom: '20px',
-              }}
-            />
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button
-                disabled={isCreating}
-                onClick={() => setIsModalOpen(false)}
-                style={{
-                  height: '36px',
-                  padding: '0 16px',
-                  width: 'auto',
-                  margin: '0',
-                  whiteSpace: 'nowrap',
-                  backgroundColor: 'white',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  color: '#666',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  lineHeight: '1',
-                  fontSize: '15px',
-                  fontWeight: '500',
-                }}
-              >
-                {t('cancel')}
-              </button>
-              <button
-                disabled={isCreating || !newTitle.trim()}
-                onClick={handleAddProject}
-                style={{
-                  height: '36px',
-                  padding: '0 16px',
-                  width: 'auto',
-                  margin: '0',
-                  whiteSpace: 'nowrap',
-                  backgroundColor: '#007bff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: isCreating || !newTitle.trim() ? 'not-allowed' : 'pointer',
-                  color: 'white',
-                  fontWeight: '600',
-                  fontSize: '15px',
-                  opacity: isCreating || !newTitle.trim() ? 0.6 : 1,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  lineHeight: '1',
-                }}
-              >
-                {isCreating ? t('creating') : t('createProject')}
-              </button>
-            </div>
-          </div>
-        </div>
+        />
       )}
 
       {/* Rename Modal */}

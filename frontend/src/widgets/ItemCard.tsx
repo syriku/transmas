@@ -1,4 +1,6 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { ProjectType } from '../../bindings/github.com/syriku/transmas/agents/database/models'
 
 interface ItemCardProps {
   title: string
@@ -8,6 +10,7 @@ interface ItemCardProps {
   isAdd?: boolean
   addText?: string
   status?: number
+  projectType?: ProjectType
 }
 
 const ItemCard: React.FC<ItemCardProps> = ({
@@ -18,7 +21,9 @@ const ItemCard: React.FC<ItemCardProps> = ({
   isAdd = false,
   addText = 'Add Item',
   status,
+  projectType,
 }) => {
+  const { t } = useTranslation()
   const handleClick = (_e: React.MouseEvent) => {
     console.log('ItemCard clicked', { title, isAdd })
     onClick()
@@ -88,6 +93,30 @@ const ItemCard: React.FC<ItemCardProps> = ({
             borderBottomLeftRadius: '12px',
           }}
         />
+      )}
+      {!isAdd && projectType !== undefined && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '12px',
+            right: '12px',
+            fontSize: '11px',
+            fontWeight: '700',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            padding: '3px 8px',
+            borderRadius: '10px',
+            backgroundColor: projectType === ProjectType.ProjectTypeComic ? '#e6fcf5' : '#e7f5ff',
+            color: projectType === ProjectType.ProjectTypeComic ? '#0ca678' : '#1971c2',
+            border:
+              projectType === ProjectType.ProjectTypeComic
+                ? '1px solid #c3fae8'
+                : '1px solid #d0ebff',
+            zIndex: 5,
+          }}
+        >
+          {projectType === ProjectType.ProjectTypeComic ? t('comic') : t('novel')}
+        </div>
       )}
       <div style={{ pointerEvents: 'none', width: '100%' }}>
         {isAdd ? (
