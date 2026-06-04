@@ -45,8 +45,8 @@ func TestSystemService_ListCandidateChapters(t *testing.T) {
 
 	ss := NewSystemService()
 
-	// 1. Test as Novel Project (no comic_project DB exists)
-	candidates, err := ss.ListCandidateChapters(tmpDir)
+	// 1. Test as Novel Project (isComic = false)
+	candidates, err := ss.ListCandidateChapters(tmpDir, false)
 	if err != nil {
 		t.Fatalf("failed to list candidate chapters: %v", err)
 	}
@@ -57,14 +57,8 @@ func TestSystemService_ListCandidateChapters(t *testing.T) {
 		t.Errorf("expected novel candidates %v, got %v", expectedNovel, candidates)
 	}
 
-	// 2. Test as Comic Project (comic_project DB exists)
-	dbPath := filepath.Join(tmpDir, "comic_project")
-	err = os.WriteFile(dbPath, []byte("fake db contents"), 0644)
-	if err != nil {
-		t.Fatalf("failed to write fake database file: %v", err)
-	}
-
-	candidates, err = ss.ListCandidateChapters(tmpDir)
+	// 2. Test as Comic Project (isComic = true)
+	candidates, err = ss.ListCandidateChapters(tmpDir, true)
 	if err != nil {
 		t.Fatalf("failed to list candidate chapters: %v", err)
 	}

@@ -44,7 +44,7 @@ func (s *SystemService) SetWorkDir() (string, error) {
 		PromptForSingleSelection()
 }
 
-func (s *SystemService) ListCandidateChapters(dir string) ([]string, error) {
+func (s *SystemService) ListCandidateChapters(dir string, isComic bool) ([]string, error) {
 	info, err := os.Stat(dir)
 	if err != nil {
 		return nil, err
@@ -56,12 +56,6 @@ func (s *SystemService) ListCandidateChapters(dir string) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, err
-	}
-
-	// Check if this is a comic project directory
-	isComic := false
-	if _, err := os.Stat(filepath.Join(dir, "comic_project")); err == nil {
-		isComic = true
 	}
 
 	files := make([]string, 0)

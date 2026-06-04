@@ -22,7 +22,7 @@ import NovelPreviewModal from './widgets/NovelPreviewModal'
 import { Novel } from '../bindings/github.com/syriku/kakuyomu-loader/models'
 
 import { useApp } from './AppContext'
-import { Chapter } from '../bindings/github.com/syriku/transmas/agents/database/models'
+import { Chapter, ProjectType } from '../bindings/github.com/syriku/transmas/agents/database/models'
 import { EXPORT_SUFFIXES } from './i18n'
 
 const ChaptersPage: React.FC = () => {
@@ -75,7 +75,7 @@ const ChaptersPage: React.FC = () => {
 
   useEffect(() => {
     if (isModalOpen && workDir) {
-      ListCandidateChapters(workDir)
+      ListCandidateChapters(workDir, currentProject?.ProjectType === ProjectType.ProjectTypeComic)
         .then((list: string[]) => {
           const existingTitles = new Set(chapters.map((c) => c.Title))
           const available = (list || []).filter((title) => {
@@ -94,7 +94,7 @@ const ChaptersPage: React.FC = () => {
       setModalMode('local')
       setUrlInput('')
     }
-  }, [isModalOpen, workDir, chapters])
+  }, [isModalOpen, workDir, chapters, currentProject])
 
   const fetchProjectDetails = async () => {
     if (!projectName) return
@@ -475,21 +475,23 @@ const ChaptersPage: React.FC = () => {
                   }}
                 >
                   <h2 style={{ margin: 0 }}>{t('newChapter')}</h2>
-                  <button
-                    onClick={() => setModalMode('url')}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#007bff',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      padding: 0,
-                      whiteSpace: 'nowrap',
-                      marginRight: '16px',
-                    }}
-                  >
-                    {t('addViaUrl')}
-                  </button>
+                  {currentProject?.ProjectType !== ProjectType.ProjectTypeComic && (
+                    <button
+                      onClick={() => setModalMode('url')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#007bff',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        padding: 0,
+                        whiteSpace: 'nowrap',
+                        marginRight: '16px',
+                      }}
+                    >
+                      {t('addViaUrl')}
+                    </button>
+                  )}
                 </div>
                 <div
                   style={{ position: 'relative', marginBottom: '20px' }}

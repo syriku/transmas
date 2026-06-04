@@ -38,8 +38,8 @@ export function GetSystemLanguage(): $CancellablePromise<string> {
     return $Call.ByID(2136166974);
 }
 
-export function ListCandidateChapters(dir: string): $CancellablePromise<string[]> {
-    return $Call.ByID(4243064222, dir).then(($result: any) => {
+export function ListCandidateChapters(dir: string, isComic: boolean): $CancellablePromise<string[]> {
+    return $Call.ByID(4243064222, dir, isComic).then(($result: any) => {
         return $$createType1($result);
     });
 }
