@@ -14,14 +14,33 @@ import * as request$0 from "../../aisdk/request/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as loader$0 from "../../kakuyomu-loader/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as http$0 from "../../../../net/http/models.js";
 
 export function DeleteUserData(): $CancellablePromise<void> {
     return $Call.ByID(1648938747);
 }
 
+/**
+ * GetAssetHandler initializes the master router with the fallback handler and returns it.
+ */
+export function GetAssetHandler(fallback: http$0.Handler): $CancellablePromise<http$0.Handler> {
+    return $Call.ByID(900726805, fallback);
+}
+
+/**
+ * GetChapterPages lists the image files (.jpg, .jpeg, .png) in the specified chapter folder.
+ */
+export function GetChapterPages(chapterName: string): $CancellablePromise<string[]> {
+    return $Call.ByID(2223825478, chapterName).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
 export function GetLanguagesMap(): $CancellablePromise<{ [_ in request$0.Language]?: string }> {
     return $Call.ByID(2561332342).then(($result: any) => {
-        return $$createType0($result);
+        return $$createType1($result);
     });
 }
 
@@ -30,7 +49,7 @@ export function GetLanguagesMap(): $CancellablePromise<{ [_ in request$0.Languag
  */
 export function GetModels(config: api$0.UserConfig): $CancellablePromise<string[]> {
     return $Call.ByID(1148362899, config).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType0($result);
     });
 }
 
@@ -38,9 +57,16 @@ export function GetSystemLanguage(): $CancellablePromise<string> {
     return $Call.ByID(2136166974);
 }
 
+/**
+ * GetWorkspace retrieves the current workspace path.
+ */
+export function GetWorkspace(): $CancellablePromise<string> {
+    return $Call.ByID(3257836510);
+}
+
 export function ListCandidateChapters(dir: string, isComic: boolean): $CancellablePromise<string[]> {
     return $Call.ByID(4243064222, dir, isComic).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType0($result);
     });
 }
 
@@ -58,8 +84,15 @@ export function SetWorkDir(): $CancellablePromise<string> {
     return $Call.ByID(1417197123);
 }
 
+/**
+ * SetWorkspace updates the workspace directory for the routing server.
+ */
+export function SetWorkspace(workspace: string): $CancellablePromise<void> {
+    return $Call.ByID(2924081106, workspace);
+}
+
 // Private type creation functions
-const $$createType0 = $Create.Map($Create.Any, $Create.Any);
-const $$createType1 = $Create.Array($Create.Any);
+const $$createType0 = $Create.Array($Create.Any);
+const $$createType1 = $Create.Map($Create.Any, $Create.Any);
 const $$createType2 = loader$0.Novel.createFrom;
 const $$createType3 = $Create.Nullable($$createType2);

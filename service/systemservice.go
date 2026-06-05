@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,14 +10,91 @@ import (
 	"github.com/syriku/aisdk/request"
 	"github.com/syriku/transmas/agents"
 	"github.com/syriku/transmas/config"
+	"github.com/syriku/transmas/server"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 type SystemService struct {
+	router      *server.MasterRouter
+	handlerImpl http.Handler
 }
 
 func NewSystemService() *SystemService {
 	return &SystemService{}
+}
+
+// GetAssetHandler initializes the master router with the fallback handler and returns it.
+func (s *SystemService) GetAssetHandler(fallback http.Handler) http.Handler {
+	s.handlerImpl = fallback
+	s.router = server.NewMasterRouter(fallback)
+	return s.router
+}
+
+// SetWorkspace updates the workspace directory for the routing server.
+func (s *SystemService) SetWorkspace(workspace string) error {
+	if s.router == nil {
+		return fmt.Errorf("router not initialized")
+	}
+	if workspace != "" {
+		info, err := os.Stat(workspace)
+		if err != nil {
+			return fmt.Errorf("failed to access workspace: %w", err)
+		}
+		if !info.IsDir() {
+			return fmt.Errorf("workspace path is not a directory: %s", workspace)
+		}
+	}
+	s.router.SetWorkspace(workspace)
+	return nil
+}
+
+// GetWorkspace retrieves the current workspace path.
+func (s *SystemService) GetWorkspace() (string, error) {
+	if s.router == nil {
+		return "", fmt.Errorf("router not initialized")
+	}
+	return s.router.GetWorkspace(), nil
+}
+
+// GetChapterPages lists the image files (.jpg, .jpeg, .png) in the specified chapter folder.
+func (s *SystemService) GetChapterPages(chapterName string) ([]string, error) {
+	if s.router == nil {
+		return nil, fmt.Errorf("router not initialized")
+	}
+	ws := s.router.GetWorkspace()
+	if ws == "" {
+		return nil, fmt.Errorf("workspace not set")
+	}
+
+	chapterDir := filepath.Join(ws, chapterName)
+	info, err := os.Stat(chapterDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to access chapter: %w", err)
+	}
+	if !info.IsDir() {
+		return nil, fmt.Errorf("chapter path is not a directory: %s", chapterName)
+	}
+
+	entries, err := os.ReadDir(chapterDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read chapter directory: %w", err)
+	}
+
+	var pages []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if strings.HasPrefix(name, ".") {
+			continue
+		}
+		ext := strings.ToLower(filepath.Ext(name))
+		if ext == ".jpg" || ext == ".jpeg" || ext == ".png" {
+			pages = append(pages, name)
+		}
+	}
+	return pages, nil
 }
 
 func (s *SystemService) DeleteUserData() error {
