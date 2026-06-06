@@ -225,7 +225,11 @@ const ChaptersPage: React.FC = () => {
 
   const handleChapterClick = (chapter: Chapter) => {
     setCurrentChapter(chapter)
-    navigate(`/editor?project=${encodeURIComponent(projectName || '')}&chapter=${chapter.Order}`)
+    if (currentProject?.ProjectType === ProjectType.ProjectTypeComic) {
+      navigate(`/label?project=${encodeURIComponent(projectName || '')}&chapter=${chapter.Order}`)
+    } else {
+      navigate(`/editor?project=${encodeURIComponent(projectName || '')}&chapter=${chapter.Order}`)
+    }
   }
 
   const handleContextMenu = (e: React.MouseEvent, chapter: Chapter) => {

@@ -5,6 +5,7 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import HomePage from './HomePage'
 import ChaptersPage from './ChaptersPage'
 import EditorPage from './EditorPage'
+import LabelPage from './LabelPage'
 import Login from './login'
 import { AppProvider } from './AppContext'
 
@@ -16,6 +17,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
           <Route path="/home" element={<HomePage />} />
           <Route path="/chapters/:projectName" element={<ChaptersPage />} />
           <Route path="/editor" element={<EditorPage />} />
+          <Route path="/label" element={<LabelPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>
