@@ -3,6 +3,7 @@ package comicagents
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/syriku/label-go/comic"
@@ -107,27 +108,35 @@ func TestEnsureProject(t *testing.T) {
 		}
 	}
 
-	var dbLabels []comicdb.Label
-	if err := db.Find(&dbLabels).Error; err != nil {
-		t.Fatalf("failed to query labels from db: %v", err)
-	}
-	if len(dbLabels) != 1 {
-		t.Errorf("expected 1 label, got %d", len(dbLabels))
-	} else {
-		l := dbLabels[0]
-		if l.Text != "Hello World" {
-			t.Errorf("expected label text 'Hello World', got '%s'", l.Text)
-		}
-	}
-
-	// Verify PageMeta database records
+	// Verify labels in page metas
 	var dbPageMetas []comicdb.PageMeta
 	if err := db.Find(&dbPageMetas).Error; err != nil {
 		t.Fatalf("failed to query page metas from db: %v", err)
 	}
 	if len(dbPageMetas) != 2 {
-		t.Errorf("expected 2 page metas in db, got %d", len(dbPageMetas))
+		t.Fatalf("expected 2 page metas in db, got %d", len(dbPageMetas))
+	}
+	var page1Meta comicdb.PageMeta
+	for _, pm := range dbPageMetas {
+		if pm.FileName == "page1.jpg" {
+			page1Meta = pm
+			break
+		}
+	}
+	if len(page1Meta.Labels) != 1 {
+		t.Errorf("expected 1 label on page1.jpg, got %d", len(page1Meta.Labels))
 	} else {
+		l := page1Meta.Labels[0]
+		if l.Text != "Hello World" {
+			t.Errorf("expected label text 'Hello World', got '%s'", l.Text)
+		}
+		if l.Page != "page1.jpg" {
+			t.Errorf("expected label page 'page1.jpg', got '%s'", l.Page)
+		}
+	}
+
+	// Verify PageMeta database records
+	{
 		pm := dbPageMetas[0]
 		if pm.FileName != "page1.jpg" {
 			t.Errorf("expected page1.jpg, got %s", pm.FileName)
@@ -361,5 +370,162 @@ func TestChapterTags(t *testing.T) {
 	err = agent.SetChapterTags(tempDir, 1, []string{"   ", ""})
 	if err == nil {
 		t.Error("expected error when setting blank tags, got nil")
+	}
+}
+
+func TestLabelsAndLpOperations(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "transmas-comicagent-lp-test")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	workComic := comic.WorkComic{
+		Comic: comic.Comic{
+			Title:    "Test LP Comic",
+			Chapters: 1,
+		},
+		WorkDir: tempDir,
+		Chapters: []comic.WorkChapter{
+			{
+				Chapter: comic.Chapter{
+					Title:     "Chapter 1",
+					Order:     1,
+					PageCount: 2,
+				},
+				DirName: "chap1",
+				Pages: []comic.PageMeta{
+					{
+						FileName: "page1.jpg",
+						Format:   comic.JPG,
+						Size:     [2]uint{800, 600},
+					},
+					{
+						FileName: "page2.jpg",
+						Format:   comic.JPG,
+						Size:     [2]uint{800, 600},
+					},
+				},
+				Tags: []string{"inside", "outside"},
+			},
+		},
+	}
+
+	agent := NewComicAgent()
+	if err := agent.EnsureProject(workComic); err != nil {
+		t.Fatalf("EnsureProject failed: %v", err)
+	}
+
+	// 1. Test UpdatePageLabels
+	labels1 := label.Labels{
+		{
+			Pos:        [2]float32{0.1, 0.2},
+			Tag:        "inside",
+			Text:       "Label 1",
+			Translated: true,
+			Reviewed:   false,
+			Page:       "page1.jpg",
+		},
+	}
+	if err := agent.UpdatePageLabels(tempDir, 1, "page1.jpg", labels1); err != nil {
+		t.Fatalf("UpdatePageLabels failed: %v", err)
+	}
+
+	labels2 := label.Labels{
+		{
+			Pos:        [2]float32{0.5, 0.6},
+			Tag:        "outside",
+			Text:       "Label 2",
+			Translated: true,
+			Reviewed:   true,
+			Page:       "page2.jpg",
+		},
+	}
+	if err := agent.UpdatePageLabels(tempDir, 1, "page2.jpg", labels2); err != nil {
+		t.Fatalf("UpdatePageLabels failed: %v", err)
+	}
+
+	// 2. Test MergeLabels
+	merged, err := agent.MergeLabels(tempDir, 1)
+	if err != nil {
+		t.Fatalf("MergeLabels failed: %v", err)
+	}
+	if len(merged) != 2 {
+		t.Errorf("expected 2 merged labels, got %d", len(merged))
+	} else {
+		if merged[0].Text != "Label 1" || merged[1].Text != "Label 2" {
+			t.Errorf("unexpected merged labels: %+v", merged)
+		}
+	}
+
+	// 3. Test ExportLp
+	lpPath := filepath.Join(tempDir, "exported.txt")
+	if err := agent.ExportLp(tempDir, 1, lpPath); err != nil {
+		t.Fatalf("ExportLp failed: %v", err)
+	}
+	contentBytes, err := os.ReadFile(lpPath)
+	if err != nil {
+		t.Fatalf("failed to read exported LP file: %v", err)
+	}
+	lpContent := string(contentBytes)
+	if !strings.Contains(lpContent, ">>>>>>>>[page1.jpg]<<<<<<<<") ||
+		!strings.Contains(lpContent, ">>>>>>>>[page2.jpg]<<<<<<<<") ||
+		!strings.Contains(lpContent, "Label 1") ||
+		!strings.Contains(lpContent, "Label 2") {
+		t.Errorf("exported LP format is incorrect:\n%s", lpContent)
+	}
+
+	// 4. Test ImportLp
+	customLp := `1,0
+-
+inside
+outside
+new_tag
+-
+Test import
+
+>>>>>>>>[page1.jpg]<<<<<<<<
+----------------[1]----------------[0.1000,0.2000,1]
+Label 1 Imported
+
+>>>>>>>>[page2.jpg]<<<<<<<<
+----------------[1]----------------[0.5000,0.6000,3]
+Label 2 Imported
+
+`
+	lpImportPath := filepath.Join(tempDir, "imported.txt")
+	if err := os.WriteFile(lpImportPath, []byte(customLp), 0644); err != nil {
+		t.Fatalf("failed to write custom LP: %v", err)
+	}
+
+	if err := agent.ImportLp(tempDir, 1, lpImportPath); err != nil {
+		t.Fatalf("ImportLp failed: %v", err)
+	}
+
+	// Verify imported tags
+	tags, err := agent.GetChapterTags(tempDir, 1)
+	if err != nil {
+		t.Fatalf("GetChapterTags failed: %v", err)
+	}
+	if len(tags) != 3 || tags[2] != "new_tag" {
+		t.Errorf("expected 3 tags with 'new_tag' at the end, got %v", tags)
+	}
+
+	// Verify imported labels on pages
+	metas, err := agent.GetChapterPageMetas(tempDir, 1)
+	if err != nil {
+		t.Fatalf("GetChapterPageMetas failed: %v", err)
+	}
+
+	for _, pm := range metas {
+		if pm.FileName == "page1.jpg" {
+			if len(pm.Labels) != 1 || pm.Labels[0].Text != "Label 1 Imported" || pm.Labels[0].Tag != "inside" {
+				t.Errorf("page1 labels not imported correctly: %+v", pm.Labels)
+			}
+		} else if pm.FileName == "page2.jpg" {
+			if len(pm.Labels) != 1 || pm.Labels[0].Text != "Label 2 Imported" || pm.Labels[0].Tag != "new_tag" {
+				t.Errorf("page2 labels not imported correctly: %+v", pm.Labels)
+			}
+		}
 	}
 }

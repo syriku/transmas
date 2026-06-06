@@ -13,6 +13,9 @@ import * as api$0 from "../../aisdk/api/models.js";
 import * as request$0 from "../../aisdk/request/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as label$0 from "../../label-go/label/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as quilldelta$0 from "../../quill-delta/quilldelta/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -53,6 +56,10 @@ export function DeleteProject(title: string): $CancellablePromise<void> {
 
 export function DestroyReusableTranslator(handle: number): $CancellablePromise<void> {
     return $Call.ByID(3949364470, handle);
+}
+
+export function ExportLp(projectName: string, chapterOrder: number, filePath: string): $CancellablePromise<void> {
+    return $Call.ByID(3444550939, projectName, chapterOrder, filePath);
 }
 
 export function ExportTranslatedChapter(filePath: string): $CancellablePromise<void> {
@@ -115,6 +122,10 @@ export function GetWebExtensionEnabled(): $CancellablePromise<boolean> {
     return $Call.ByID(3859722005);
 }
 
+export function ImportLp(projectName: string, chapterOrder: number, filePath: string): $CancellablePromise<void> {
+    return $Call.ByID(3304696556, projectName, chapterOrder, filePath);
+}
+
 export function ListChapters(projectName: string): $CancellablePromise<database$0.Chapter[]> {
     return $Call.ByID(3084619811, projectName).then(($result: any) => {
         return $$createType12($result);
@@ -135,21 +146,27 @@ export function LogOut(): $CancellablePromise<void> {
     return $Call.ByID(4174194831);
 }
 
+export function MergeLabels(projectName: string, chapterOrder: number): $CancellablePromise<label$0.Labels> {
+    return $Call.ByID(2099133928, projectName, chapterOrder).then(($result: any) => {
+        return $$createType15($result);
+    });
+}
+
 export function NextChunk(): $CancellablePromise<agents$0.ChunkInfo> {
     return $Call.ByID(1364276089).then(($result: any) => {
-        return $$createType15($result);
+        return $$createType18($result);
     });
 }
 
 export function PrevChunk(): $CancellablePromise<agents$0.ChunkInfo> {
     return $Call.ByID(2069210457).then(($result: any) => {
-        return $$createType15($result);
+        return $$createType18($result);
     });
 }
 
 export function ReadChapter(projectName: string, chapterOrder: number, force: boolean): $CancellablePromise<agents$0.ChunkInfo> {
     return $Call.ByID(3756451582, projectName, chapterOrder, force).then(($result: any) => {
-        return $$createType15($result);
+        return $$createType18($result);
     });
 }
 
@@ -179,13 +196,13 @@ export function SetWebExtensionEnabled(enabled: boolean): $CancellablePromise<vo
 
 export function TranslateWithHandle(handle: number, detailed: boolean): $CancellablePromise<agents$0.TranslationResponse> {
     return $Call.ByID(167231147, handle, detailed).then(($result: any) => {
-        return $$createType16($result);
+        return $$createType19($result);
     });
 }
 
 export function TranslateWithParams(projectName: string, model: string, detailed: boolean): $CancellablePromise<agents$0.TranslationResponse> {
     return $Call.ByID(3255012235, projectName, model, detailed).then(($result: any) => {
-        return $$createType16($result);
+        return $$createType19($result);
     });
 }
 
@@ -207,6 +224,10 @@ export function UpdateGlossary(projectName: string, glossary: request$0.Glossary
 
 export function UpdateOriginalChunk(newDelta: quilldelta$0.Delta | null): $CancellablePromise<void> {
     return $Call.ByID(4124787660, newDelta);
+}
+
+export function UpdatePageLabels(projectName: string, chapterOrder: number, filename: string, labels: label$0.Labels): $CancellablePromise<void> {
+    return $Call.ByID(2854036344, projectName, chapterOrder, filename, labels);
 }
 
 export function UpdateProjectAiConfigKey(projectName: string, configKey: string): $CancellablePromise<void> {
@@ -245,5 +266,13 @@ const $$createType11 = database$0.Chapter.createFrom;
 const $$createType12 = $Create.Array($$createType11);
 const $$createType13 = database$0.ProjectInfo.createFrom;
 const $$createType14 = $Create.Array($$createType13);
-const $$createType15 = agents$0.ChunkInfo.createFrom;
-const $$createType16 = agents$0.TranslationResponse.createFrom;
+var $$createType15 = (function $$initCreateType15(...args: any[]): any {
+    if ($$createType15 === $$initCreateType15) {
+        $$createType15 = $$createType17;
+    }
+    return $$createType15(...args);
+});
+const $$createType16 = label$0.Label.createFrom;
+const $$createType17 = $Create.Array($$createType16);
+const $$createType18 = agents$0.ChunkInfo.createFrom;
+const $$createType19 = agents$0.TranslationResponse.createFrom;

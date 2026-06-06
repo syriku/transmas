@@ -15,6 +15,7 @@ import (
 	"github.com/syriku/aisdk/request"
 	"github.com/syriku/aisdk/session"
 	"github.com/syriku/label-go/comic"
+	"github.com/syriku/label-go/label"
 	"github.com/syriku/quill-delta/quilldelta"
 	"github.com/syriku/transmas/agents/comicagents"
 	"github.com/syriku/transmas/agents/comicagents/comicdb"
@@ -80,6 +81,10 @@ type TranslateAgent interface {
 	SetCurrentChunkTranslated(completed bool) error
 	SetCurrentChunkReviewed(completed bool) error
 	Logout() error
+	UpdatePageLabels(projectName string, chapterOrder uint, filename string, labels label.Labels) error
+	MergeLabels(projectName string, chapterOrder uint) (label.Labels, error)
+	ExportLp(projectName string, chapterOrder uint, filePath string) error
+	ImportLp(projectName string, chapterOrder uint, filePath string) error
 }
 
 type translateAgentImpl struct {
@@ -688,6 +693,62 @@ func (i *translateAgentImpl) SetChapterTags(projectName string, chapterOrder uin
 		return fmt.Errorf("project work directory not set")
 	}
 	return i.comicAgent.SetChapterTags(proj.WorkDir, chapterOrder, tags)
+}
+
+func (i *translateAgentImpl) UpdatePageLabels(projectName string, chapterOrder uint, filename string, labels label.Labels) error {
+	proj, err := database.FetchProjectByOwnerAndTitle(i.db, i.userData.Username, projectName)
+	if err != nil {
+		return err
+	}
+	if proj.ProjectType != database.ProjectTypeComic {
+		return fmt.Errorf("project is not a comic project")
+	}
+	if proj.WorkDir == "" {
+		return fmt.Errorf("project work directory not set")
+	}
+	return i.comicAgent.UpdatePageLabels(proj.WorkDir, chapterOrder, filename, labels)
+}
+
+func (i *translateAgentImpl) MergeLabels(projectName string, chapterOrder uint) (label.Labels, error) {
+	proj, err := database.FetchProjectByOwnerAndTitle(i.db, i.userData.Username, projectName)
+	if err != nil {
+		return nil, err
+	}
+	if proj.ProjectType != database.ProjectTypeComic {
+		return nil, fmt.Errorf("project is not a comic project")
+	}
+	if proj.WorkDir == "" {
+		return nil, fmt.Errorf("project work directory not set")
+	}
+	return i.comicAgent.MergeLabels(proj.WorkDir, chapterOrder)
+}
+
+func (i *translateAgentImpl) ExportLp(projectName string, chapterOrder uint, filePath string) error {
+	proj, err := database.FetchProjectByOwnerAndTitle(i.db, i.userData.Username, projectName)
+	if err != nil {
+		return err
+	}
+	if proj.ProjectType != database.ProjectTypeComic {
+		return fmt.Errorf("project is not a comic project")
+	}
+	if proj.WorkDir == "" {
+		return fmt.Errorf("project work directory not set")
+	}
+	return i.comicAgent.ExportLp(proj.WorkDir, chapterOrder, filePath)
+}
+
+func (i *translateAgentImpl) ImportLp(projectName string, chapterOrder uint, filePath string) error {
+	proj, err := database.FetchProjectByOwnerAndTitle(i.db, i.userData.Username, projectName)
+	if err != nil {
+		return err
+	}
+	if proj.ProjectType != database.ProjectTypeComic {
+		return fmt.Errorf("project is not a comic project")
+	}
+	if proj.WorkDir == "" {
+		return fmt.Errorf("project work directory not set")
+	}
+	return i.comicAgent.ImportLp(proj.WorkDir, chapterOrder, filePath)
 }
 
 func (i *translateAgentImpl) GetChapterMeta() (*meta.ChapterMeta, error) {

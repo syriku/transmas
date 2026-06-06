@@ -10,6 +10,9 @@ import { Create as $Create } from "@wailsio/runtime";
 import * as comic$0 from "../../../../label-go/comic/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as label$0 from "../../../../label-go/label/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as gorm$0 from "../../../../../../gorm.io/gorm/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -24,6 +27,7 @@ export class PageMeta {
     "filename": string;
     "format": comic$0.ImageFormat;
     "size": number[];
+    "labels": label$0.Labels;
 
     /** Creates a new PageMeta instance. */
     constructor($$source: Partial<PageMeta> = {}) {
@@ -51,6 +55,9 @@ export class PageMeta {
         if (!("size" in $$source)) {
             this["size"] = Array.from({ length: 2 }, () => 0);
         }
+        if (!("labels" in $$source)) {
+            this["labels"] = [];
+        }
 
         Object.assign(this, $$source);
     }
@@ -59,7 +66,21 @@ export class PageMeta {
      * Creates a new PageMeta instance from a string or object.
      */
     static createFrom($$source: any = {}): PageMeta {
+        const $$createField8_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("labels" in $$parsedSource) {
+            $$parsedSource["labels"] = $$createField8_0($$parsedSource["labels"]);
+        }
         return new PageMeta($$parsedSource as Partial<PageMeta>);
     }
 }
+
+// Private type creation functions
+var $$createType0 = (function $$initCreateType0(...args: any[]): any {
+    if ($$createType0 === $$initCreateType0) {
+        $$createType0 = $$createType2;
+    }
+    return $$createType0(...args);
+});
+const $$createType1 = label$0.Label.createFrom;
+const $$createType2 = $Create.Array($$createType1);

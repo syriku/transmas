@@ -2,6 +2,7 @@ package comicdb
 
 import (
 	"github.com/syriku/label-go/comic"
+	"github.com/syriku/label-go/label"
 	"gorm.io/gorm"
 )
 
@@ -18,6 +19,7 @@ type PageMeta struct {
 	FileName  string            `gorm:"uniqueIndex:idx_chapter_filename" json:"filename"`
 	Format    comic.ImageFormat `json:"format"`
 	Size      [2]uint           `gorm:"serializer:json" json:"size"`
+	Labels    label.Labels      `gorm:"serializer:json" json:"labels"`
 }
 
 type Chapter struct {
@@ -28,16 +30,4 @@ type Chapter struct {
 	PageCount uint
 	Pages     []string `gorm:"serializer:json"`
 	Tags      []string `gorm:"serializer:json"`
-}
-
-type Label struct {
-	gorm.Model
-	ChapterID  uint `gorm:"index"`
-	PosX       float32
-	PosY       float32
-	Tag        string
-	Text       string
-	Translated bool
-	Reviewed   bool
-	Page       string
 }

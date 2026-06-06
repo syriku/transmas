@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/syriku/label-go/comic"
+	"github.com/syriku/label-go/label"
 	"github.com/syriku/transmas/agents/comicagents/comicdb"
 	"github.com/syriku/transmas/agents/meta"
 	"gorm.io/driver/sqlite"
@@ -30,6 +31,10 @@ type ComicAgent interface {
 	GetChapterPageMetas(workDir string, order uint) ([]comicdb.PageMeta, error)
 	GetChapterTags(workDir string, order uint) ([]string, error)
 	SetChapterTags(workDir string, order uint, tags []string) error
+	UpdatePageLabels(workDir string, order uint, filename string, labels label.Labels) error
+	MergeLabels(workDir string, order uint) (label.Labels, error)
+	ExportLp(workDir string, order uint, filePath string) error
+	ImportLp(workDir string, order uint, filePath string) error
 }
 
 // comicAgentImpl is the concrete implementation of the ComicAgent interface.
@@ -59,7 +64,7 @@ func (c *comicAgentImpl) getDB(workDir string) (*gorm.DB, error) {
 	}
 
 	// Run migration
-	err = db.AutoMigrate(&comicdb.Comic{}, &comicdb.Chapter{}, &comicdb.Label{}, &comicdb.PageMeta{})
+	err = db.AutoMigrate(&comicdb.Comic{}, &comicdb.Chapter{}, &comicdb.PageMeta{})
 	if err != nil {
 		if sqlDB, errClose := db.DB(); errClose == nil {
 			sqlDB.Close()
@@ -129,30 +134,22 @@ func (c *comicAgentImpl) EnsureProject(comicInfo comic.WorkComic) error {
 					return err
 				}
 
+				labelsByPage := make(map[string]label.Labels)
+				for _, l := range ch.Labels {
+					if l.Page != "" {
+						labelsByPage[l.Page] = append(labelsByPage[l.Page], l)
+					}
+				}
+
 				for _, p := range ch.Pages {
 					dbPageMeta := comicdb.PageMeta{
 						ChapterID: dbChapter.ID,
 						FileName:  p.FileName,
 						Format:    p.Format,
 						Size:      p.Size,
+						Labels:    labelsByPage[p.FileName],
 					}
 					if err := tx.Create(&dbPageMeta).Error; err != nil {
-						return err
-					}
-				}
-
-				for _, l := range ch.Labels {
-					dbLabel := comicdb.Label{
-						ChapterID:  dbChapter.ID,
-						PosX:       l.Pos[0],
-						PosY:       l.Pos[1],
-						Tag:        l.Tag,
-						Text:       l.Text,
-						Translated: l.Translated,
-						Reviewed:   l.Reviewed,
-						Page:       l.Page,
-					}
-					if err := tx.Create(&dbLabel).Error; err != nil {
 						return err
 					}
 				}
@@ -239,7 +236,7 @@ func (c *comicAgentImpl) DeleteChapter(workDir string, order uint) error {
 	}
 
 	return db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("chapter_id = ?", ch.ID).Delete(&comicdb.Label{}).Error; err != nil {
+		if err := tx.Where("chapter_id = ?", ch.ID).Delete(&comicdb.PageMeta{}).Error; err != nil {
 			return err
 		}
 		if err := tx.Delete(&ch).Error; err != nil {
@@ -267,24 +264,28 @@ func (c *comicAgentImpl) GetChapterStatus(workDir string, order uint) (meta.Chap
 		return meta.StatusUncompleted, err
 	}
 
-	var labels []comicdb.Label
-	if err := db.Where("chapter_id = ?", ch.ID).Find(&labels).Error; err != nil {
+	var metas []comicdb.PageMeta
+	if err := db.Where("chapter_id = ?", ch.ID).Find(&metas).Error; err != nil {
 		return meta.StatusUncompleted, err
 	}
 
-	if len(labels) == 0 {
-		return meta.StatusUncompleted, nil
-	}
-
+	totalLabels := 0
 	allReviewed := true
 	allTranslated := true
-	for _, l := range labels {
-		if !l.Reviewed {
-			allReviewed = false
+	for _, pm := range metas {
+		for _, l := range pm.Labels {
+			totalLabels++
+			if !l.Reviewed {
+				allReviewed = false
+			}
+			if !l.Translated {
+				allTranslated = false
+			}
 		}
-		if !l.Translated {
-			allTranslated = false
-		}
+	}
+
+	if totalLabels == 0 {
+		return meta.StatusUncompleted, nil
 	}
 
 	if allReviewed {
@@ -470,6 +471,252 @@ func (c *comicAgentImpl) SetChapterTags(workDir string, order uint, tags []strin
 
 	ch.Tags = cleaned
 	return db.Save(&ch).Error
+}
+
+func (c *comicAgentImpl) UpdatePageLabels(workDir string, order uint, filename string, labels label.Labels) error {
+	db, err := c.getDB(workDir)
+	if err != nil {
+		return err
+	}
+	sqlDB, err := db.DB()
+	if err == nil {
+		defer sqlDB.Close()
+	}
+
+	var ch comicdb.Chapter
+	if err := db.Where("`order` = ?", order).First(&ch).Error; err != nil {
+		return err
+	}
+
+	var pm comicdb.PageMeta
+	err = db.Where("chapter_id = ? AND file_name = ?", ch.ID, filename).First(&pm).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			format := comic.JPG
+			if strings.ToLower(filepath.Ext(filename)) == ".png" {
+				format = comic.PNG
+			}
+			pm = comicdb.PageMeta{
+				ChapterID: ch.ID,
+				FileName:  filename,
+				Format:    format,
+				Size:      [2]uint{0, 0},
+				Labels:    labels,
+			}
+			return db.Create(&pm).Error
+		}
+		return err
+	}
+
+	pm.Labels = labels
+	return db.Save(&pm).Error
+}
+
+func (c *comicAgentImpl) MergeLabels(workDir string, order uint) (label.Labels, error) {
+	db, err := c.getDB(workDir)
+	if err != nil {
+		return nil, err
+	}
+	sqlDB, err := db.DB()
+	if err == nil {
+		defer sqlDB.Close()
+	}
+
+	var ch comicdb.Chapter
+	if err := db.Where("`order` = ?", order).First(&ch).Error; err != nil {
+		return nil, err
+	}
+
+	var metas []comicdb.PageMeta
+	if err := db.Where("chapter_id = ?", ch.ID).Find(&metas).Error; err != nil {
+		return nil, err
+	}
+
+	metaMap := make(map[string]comicdb.PageMeta)
+	for _, m := range metas {
+		metaMap[m.FileName] = m
+	}
+
+	var allLabels label.Labels
+	for _, filename := range ch.Pages {
+		if m, exists := metaMap[filename]; exists {
+			for _, l := range m.Labels {
+				l.Page = filename
+				allLabels = append(allLabels, l)
+			}
+		}
+	}
+
+	return allLabels, nil
+}
+
+func (c *comicAgentImpl) ExportLp(workDir string, order uint, filePath string) error {
+	db, err := c.getDB(workDir)
+	if err != nil {
+		return err
+	}
+	sqlDB, err := db.DB()
+	if err == nil {
+		defer sqlDB.Close()
+	}
+
+	var ch comicdb.Chapter
+	if err := db.Where("`order` = ?", order).First(&ch).Error; err != nil {
+		return err
+	}
+
+	var metas []comicdb.PageMeta
+	if err := db.Where("chapter_id = ?", ch.ID).Find(&metas).Error; err != nil {
+		return err
+	}
+
+	metaMap := make(map[string]comicdb.PageMeta)
+	for _, m := range metas {
+		metaMap[m.FileName] = m
+	}
+
+	var pages []comic.PageMeta
+	var allLabels label.Labels
+	for _, filename := range ch.Pages {
+		m, exists := metaMap[filename]
+		var size [2]uint
+		var format comic.ImageFormat
+		if exists {
+			size = m.Size
+			format = m.Format
+			for _, l := range m.Labels {
+				l.Page = filename
+				allLabels = append(allLabels, l)
+			}
+		} else {
+			format = comic.JPG
+			if strings.ToLower(filepath.Ext(filename)) == ".png" {
+				format = comic.PNG
+			}
+		}
+		pages = append(pages, comic.PageMeta{
+			FileName: filename,
+			Format:   format,
+			Size:     size,
+		})
+	}
+
+	wc := comic.WorkChapter{
+		Chapter: comic.Chapter{
+			Title:     ch.Title,
+			Order:     ch.Order,
+			PageCount: ch.PageCount,
+		},
+		DirName: ch.DirName,
+		Pages:   pages,
+		Labels:  allLabels,
+		Tags:    ch.Tags,
+	}
+
+	lpStr, err := wc.ExportLp()
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(filePath, []byte(lpStr), 0644)
+}
+
+func (c *comicAgentImpl) ImportLp(workDir string, order uint, filePath string) error {
+	contentBytes, err := os.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+	lpContent := string(contentBytes)
+
+	db, err := c.getDB(workDir)
+	if err != nil {
+		return err
+	}
+	sqlDB, err := db.DB()
+	if err == nil {
+		defer sqlDB.Close()
+	}
+
+	var ch comicdb.Chapter
+	if err := db.Where("`order` = ?", order).First(&ch).Error; err != nil {
+		return err
+	}
+
+	var wc comic.WorkChapter
+	var metas []comicdb.PageMeta
+	if err := db.Where("chapter_id = ?", ch.ID).Find(&metas).Error; err == nil {
+		for _, m := range metas {
+			wc.Pages = append(wc.Pages, comic.PageMeta{
+				FileName: m.FileName,
+				Format:   m.Format,
+				Size:     m.Size,
+			})
+		}
+	}
+
+	if err := wc.ParseLp(lpContent); err != nil {
+		return err
+	}
+
+	labelsByPage := make(map[string]label.Labels)
+	for _, l := range wc.Labels {
+		if l.Page != "" {
+			labelsByPage[l.Page] = append(labelsByPage[l.Page], l)
+		}
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		if len(wc.Tags) > 0 {
+			ch.Tags = wc.Tags
+		}
+
+		if len(wc.Pages) > 0 {
+			var pageNames []string
+			for _, p := range wc.Pages {
+				pageNames = append(pageNames, p.FileName)
+			}
+			ch.Pages = pageNames
+			ch.PageCount = uint(len(pageNames))
+		}
+
+		if err := tx.Save(&ch).Error; err != nil {
+			return err
+		}
+
+		for _, filename := range ch.Pages {
+			var pm comicdb.PageMeta
+			err := tx.Where("chapter_id = ? AND file_name = ?", ch.ID, filename).First(&pm).Error
+			labels := labelsByPage[filename]
+
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					format := comic.JPG
+					if strings.ToLower(filepath.Ext(filename)) == ".png" {
+						format = comic.PNG
+					}
+					pm = comicdb.PageMeta{
+						ChapterID: ch.ID,
+						FileName:  filename,
+						Format:    format,
+						Size:      [2]uint{0, 0},
+						Labels:    labels,
+					}
+					if err := tx.Create(&pm).Error; err != nil {
+						return err
+					}
+				} else {
+					return err
+				}
+			} else {
+				pm.Labels = labels
+				if err := tx.Save(&pm).Error; err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
 }
 
 // NewComicAgent creates and returns a new instance of ComicAgent.

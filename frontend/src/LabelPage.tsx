@@ -1,11 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { Dialogs } from '@wailsio/runtime'
 import { useApp } from './AppContext'
 import {
   GetChapterPageMetas,
   UpdateChapterPages,
   GetChapterTags,
+  UpdatePageLabels,
+  ExportLp,
+  ImportLp,
 } from '../bindings/github.com/syriku/transmas/service/agentservice'
 import {
   ListCandidatePages,
@@ -560,36 +564,76 @@ const LabelPage: React.FC = () => {
 
   const currentFilename = pageMetas[currentPageIndex]?.filename
 
-  const handleAddTag = (x: number, y: number) => {
-    if (!currentFilename) return
+  const saveLabelsToBackend = async (filename: string, instances: TagInstance[]) => {
+    if (!projectName || chapterOrder === null) return
+    const backendLabels = instances.map((inst) => {
+      const tag = tags[inst.tagIndex] || ''
+      return {
+        pos: [inst.x, inst.y],
+        tag,
+        text: inst.text || '',
+        translated: inst.translated || false,
+        reviewed: inst.reviewed || false,
+        page: filename,
+      }
+    })
+    await UpdatePageLabels(projectName, chapterOrder, filename, backendLabels as any)
+  }
+
+  const handleAddTag = async (x: number, y: number) => {
+    if (!currentFilename || !projectName || chapterOrder === null) return
     const newTag: TagInstance = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
       tagIndex: activeTagIndex,
       x,
       y,
+      text: '',
+      translated: false,
+      reviewed: false,
     }
+    const updated = [...(pageTagInstances[currentFilename] || []), newTag]
     setPageTagInstances((prev) => ({
       ...prev,
-      [currentFilename]: [...(prev[currentFilename] || []), newTag],
+      [currentFilename]: updated,
     }))
+    try {
+      await saveLabelsToBackend(currentFilename, updated)
+    } catch (err: any) {
+      console.error(err)
+      setToast({ message: t('failedToSave', '保存失败: ') + err.message, type: 'error' })
+    }
   }
 
-  const handleMoveTag = (id: string, x: number, y: number) => {
-    if (!currentFilename) return
+  const handleMoveTag = async (id: string, x: number, y: number) => {
+    if (!currentFilename || !projectName || chapterOrder === null) return
+    const updated = (pageTagInstances[currentFilename] || []).map((tag) =>
+      tag.id === id ? { ...tag, x, y } : tag,
+    )
     setPageTagInstances((prev) => ({
       ...prev,
-      [currentFilename]: (prev[currentFilename] || []).map((tag) =>
-        tag.id === id ? { ...tag, x, y } : tag,
-      ),
+      [currentFilename]: updated,
     }))
+    try {
+      await saveLabelsToBackend(currentFilename, updated)
+    } catch (err: any) {
+      console.error(err)
+      setToast({ message: t('failedToSave', '保存失败: ') + err.message, type: 'error' })
+    }
   }
 
-  const handleDeleteTag = (id: string) => {
-    if (!currentFilename) return
+  const handleDeleteTag = async (id: string) => {
+    if (!currentFilename || !projectName || chapterOrder === null) return
+    const updated = (pageTagInstances[currentFilename] || []).filter((tag) => tag.id !== id)
     setPageTagInstances((prev) => ({
       ...prev,
-      [currentFilename]: (prev[currentFilename] || []).filter((tag) => tag.id !== id),
+      [currentFilename]: updated,
     }))
+    try {
+      await saveLabelsToBackend(currentFilename, updated)
+    } catch (err: any) {
+      console.error(err)
+      setToast({ message: t('failedToSave', '保存失败: ') + err.message, type: 'error' })
+    }
   }
 
   const handleTagClick = (tag: TagInstance) => {
@@ -598,6 +642,43 @@ const LabelPage: React.FC = () => {
 
   const handleTagHover = (tag: TagInstance) => {
     console.log('Hovered tag:', tag)
+  }
+
+  const handleExportLp = async () => {
+    if (!projectName || chapterOrder === null || !currentChapter) return
+    try {
+      const defaultFilename = `${currentChapter.Title.replace(/\.txt$/i, '')}_labels.txt`
+      const filePath = await Dialogs.SaveFile({
+        Title: t('exportLp', '导出 LP 格式'),
+        Filename: defaultFilename,
+        Filters: [{ DisplayName: 'Text Files', Pattern: '*.txt' }],
+      })
+      if (filePath) {
+        await ExportLp(projectName, chapterOrder, filePath)
+        setToast({ message: t('exportSuccess', '导出成功'), type: 'success' })
+      }
+    } catch (err: any) {
+      console.error('Failed to export LP:', err)
+      setToast({ message: t('failedToExport', '导出失败: ') + err.message, type: 'error' })
+    }
+  }
+
+  const handleImportLp = async () => {
+    if (!projectName || chapterOrder === null) return
+    try {
+      const filePath = await Dialogs.OpenFile({
+        Title: t('importLp', '导入 LP 格式'),
+        Filters: [{ DisplayName: 'Text Files', Pattern: '*.txt' }],
+      })
+      if (filePath) {
+        await ImportLp(projectName, chapterOrder, filePath)
+        setToast({ message: t('importSuccess', '导入成功'), type: 'success' })
+        await fetchPageMetas()
+      }
+    } catch (err: any) {
+      console.error('Failed to import LP:', err)
+      setToast({ message: t('failedToImport', '导入失败: ') + err.message, type: 'error' })
+    }
   }
 
   useEffect(() => {
@@ -612,8 +693,35 @@ const LabelPage: React.FC = () => {
     if (!projectName || chapterOrder === null) return
     setLoading(true)
     try {
+      const fetchedTags = await GetChapterTags(projectName, chapterOrder)
+      const currentTags = fetchedTags || []
+      setTags(currentTags)
+
       const metas = await GetChapterPageMetas(projectName, chapterOrder)
-      setPageMetas(metas || [])
+      const currentMetas = metas || []
+      setPageMetas(currentMetas)
+
+      const tagInstancesMap: Record<string, TagInstance[]> = {}
+      currentMetas.forEach((meta) => {
+        if (meta.labels) {
+          tagInstancesMap[meta.filename] = meta.labels.map((l: any, idx: number) => {
+            let tagIndex = currentTags.indexOf(l.tag)
+            if (tagIndex === -1) {
+              tagIndex = 0
+            }
+            return {
+              id: `${meta.filename}-${idx}-${Date.now()}`,
+              tagIndex,
+              x: l.pos ? l.pos[0] : 0,
+              y: l.pos ? l.pos[1] : 0,
+              text: l.text || '',
+              translated: l.translated || false,
+              reviewed: l.reviewed || false,
+            }
+          })
+        }
+      })
+      setPageTagInstances(tagInstancesMap)
       setCurrentPageIndex(0)
     } catch (err: any) {
       console.error('Failed to get chapter page metas:', err)
@@ -626,19 +734,8 @@ const LabelPage: React.FC = () => {
     }
   }
 
-  const fetchTags = async () => {
-    if (!projectName || chapterOrder === null) return
-    try {
-      const fetchedTags = await GetChapterTags(projectName, chapterOrder)
-      setTags(fetchedTags || [])
-    } catch (err: any) {
-      console.error('Failed to get chapter tags:', err)
-    }
-  }
-
   useEffect(() => {
     fetchPageMetas()
-    fetchTags()
   }, [projectName, chapterOrder])
 
   const translateTag = (tag: string) => {
@@ -1018,6 +1115,108 @@ const LabelPage: React.FC = () => {
               )}
             </div>
           )}
+
+          <button
+            onClick={handleImportLp}
+            title={t('importLp', '导入 LP 格式')}
+            style={{
+              width: 'auto',
+              whiteSpace: 'nowrap',
+              height: '40px',
+              padding: '0 16px',
+              backgroundColor: 'white',
+              color: '#333',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+              margin: 0,
+              lineHeight: '1',
+              flexShrink: 0,
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = '#f5f5f5'
+              e.currentTarget.style.borderColor = '#ccc'
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = 'white'
+              e.currentTarget.style.borderColor = '#ddd'
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            {t('importLp', '导入 LP')}
+          </button>
+
+          <button
+            onClick={handleExportLp}
+            title={t('exportLp', '导出 LP 格式')}
+            style={{
+              width: 'auto',
+              whiteSpace: 'nowrap',
+              height: '40px',
+              padding: '0 16px',
+              backgroundColor: 'white',
+              color: '#333',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '14px',
+              fontWeight: '600',
+              transition: 'all 0.2s',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+              margin: 0,
+              lineHeight: '1',
+              flexShrink: 0,
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = '#f5f5f5'
+              e.currentTarget.style.borderColor = '#ccc'
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = 'white'
+              e.currentTarget.style.borderColor = '#ddd'
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            {t('exportLp', '导出 LP')}
+          </button>
 
           <button
             onClick={() => setIsSetupModalOpen(true)}

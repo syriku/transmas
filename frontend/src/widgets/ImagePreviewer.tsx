@@ -12,6 +12,9 @@ export interface TagInstance {
   tagIndex: number
   x: number // 0 to 1
   y: number // 0 to 1
+  text?: string
+  translated?: boolean
+  reviewed?: boolean
 }
 
 interface ImagePreviewerProps {

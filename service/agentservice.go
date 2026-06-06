@@ -6,6 +6,7 @@ import (
 
 	"github.com/syriku/aisdk/api"
 	"github.com/syriku/aisdk/request"
+	"github.com/syriku/label-go/label"
 	"github.com/syriku/quill-delta/quilldelta"
 	"github.com/syriku/transmas/agents"
 	"github.com/syriku/transmas/agents/comicagents/comicdb"
@@ -414,4 +415,48 @@ func (a *AgentService) GetWebExtensionEnabled() (bool, error) {
 		return false, fmt.Errorf("log in first please")
 	}
 	return agent.GetWebExtensionEnabled()
+}
+
+func (a *AgentService) UpdatePageLabels(projectName string, chapterOrder uint, filename string, labels label.Labels) error {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return fmt.Errorf("log in first please")
+	}
+	return agent.UpdatePageLabels(projectName, chapterOrder, filename, labels)
+}
+
+func (a *AgentService) MergeLabels(projectName string, chapterOrder uint) (label.Labels, error) {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return nil, fmt.Errorf("log in first please")
+	}
+	return agent.MergeLabels(projectName, chapterOrder)
+}
+
+func (a *AgentService) ExportLp(projectName string, chapterOrder uint, filePath string) error {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return fmt.Errorf("log in first please")
+	}
+	return agent.ExportLp(projectName, chapterOrder, filePath)
+}
+
+func (a *AgentService) ImportLp(projectName string, chapterOrder uint, filePath string) error {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return fmt.Errorf("log in first please")
+	}
+	return agent.ImportLp(projectName, chapterOrder, filePath)
 }
