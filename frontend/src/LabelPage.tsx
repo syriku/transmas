@@ -13,6 +13,7 @@ import {
 import { PageMeta } from '../bindings/github.com/syriku/transmas/agents/comicagents/comicdb/models'
 import GlossaryModal from './widgets/GlossaryModal'
 import Toast from './widgets/Toast'
+import ImagePreviewer, { ImagePreviewerRef } from './widgets/ImagePreviewer'
 
 // PageSetupModal Component
 interface PageSetupModalProps {
@@ -550,13 +551,7 @@ const LabelPage: React.FC = () => {
   const [isGlossaryModalOpen, setIsGlossaryModalOpen] = useState(false)
   const [isSetupModalOpen, setIsSetupModalOpen] = useState(false)
 
-  // Pan & Zoom state
-  const [zoom, setZoom] = useState(1)
-  const [pan, setPan] = useState({ x: 0, y: 0 })
-  const [isDragging, setIsDragging] = useState(false)
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
-
-  const containerRef = useRef<HTMLDivElement>(null)
+  const previewerRef = useRef<ImagePreviewerRef>(null)
 
   useEffect(() => {
     if (currentProject?.WorkDir) {
@@ -588,47 +583,16 @@ const LabelPage: React.FC = () => {
     fetchPageMetas()
   }, [projectName, chapterOrder])
 
-  // Mouse pan event handlers
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return // Left click only
-    setIsDragging(true)
-    setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y })
-  }
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return
-    setPan({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y,
-    })
-  }
-
-  const handleMouseUp = () => {
-    setIsDragging(false)
-  }
-
-  const handleWheel = (e: React.WheelEvent) => {
-    const zoomFactor = 1.1
-    let newZoom = zoom
-    if (e.deltaY < 0) {
-      newZoom = Math.min(zoom * zoomFactor, 8)
-    } else {
-      newZoom = Math.max(zoom / zoomFactor, 0.15)
-    }
-    setZoom(newZoom)
-  }
-
   const resetZoom = () => {
-    setZoom(1)
-    setPan({ x: 0, y: 0 })
+    previewerRef.current?.resetZoom()
   }
 
   const zoomIn = () => {
-    setZoom((z) => Math.min(z * 1.2, 8))
+    previewerRef.current?.zoomIn()
   }
 
   const zoomOut = () => {
-    setZoom((z) => Math.max(z / 1.2, 0.15))
+    previewerRef.current?.zoomOut()
   }
 
   // Keyboard Navigation & Shortcuts
@@ -670,7 +634,7 @@ const LabelPage: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [pageMetas, currentPageIndex, isGlossaryModalOpen, isSetupModalOpen, zoom])
+  }, [pageMetas, currentPageIndex, isGlossaryModalOpen, isSetupModalOpen])
 
   const handlePrevPage = () => {
     if (currentPageIndex > 0) {
@@ -998,133 +962,63 @@ const LabelPage: React.FC = () => {
 
       <div style={{ width: '100%', borderBottom: '1px solid #e2e8f0', marginBottom: '16px' }} />
 
-      {/* Photoshop Style Movable/Floating Image Container */}
+      {/* Dual Column Layout (Image Preview on Left, Empty Box on Right) */}
       <div
-        ref={containerRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
         style={{
-          flex: 1,
-          width: '100%',
           display: 'flex',
-          alignItems: 'center',
+          flexDirection: 'row',
+          gap: '30px',
+          width: '100%',
           justifyContent: 'center',
-          overflow: 'hidden',
           position: 'relative',
-          backgroundColor: '#1b2636',
-          borderRadius: '12px',
-          boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.35)',
-          cursor: isDragging ? 'grabbing' : imageUrl ? 'grab' : 'default',
+          flex: 1,
+          overflow: 'hidden',
+          paddingLeft: '20px',
+          paddingRight: '20px',
+          paddingBottom: '20px',
+          paddingTop: '10px',
+          boxSizing: 'border-box',
         }}
       >
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt="Comic page"
+        {/* Left Column: Image Previewer */}
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            zIndex: 1,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            boxSizing: 'border-box',
+            height: '100%',
+            overflow: 'hidden',
+          }}
+        >
+          <ImagePreviewer ref={previewerRef} imageUrl={imageUrl} loading={loading} />
+        </div>
+
+        {/* Right Column: Empty Editor-Style Box */}
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            zIndex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            boxSizing: 'border-box',
+            height: '100%',
+          }}
+        >
+          <div
             style={{
-              transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-              transformOrigin: 'center center',
-              transition: isDragging ? 'none' : 'transform 0.12s ease-out',
-              userSelect: 'none',
-              pointerEvents: 'none',
-              maxHeight: '95%',
-              maxWidth: '95%',
-              objectFit: 'contain',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+              flex: 1,
+              background: 'white',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+              borderRadius: '8px',
+              border: '1px solid #e0e0e0',
             }}
           />
-        ) : (
-          <div
-            style={{ color: '#94a3b8', fontSize: '1.2rem', textAlign: 'center', padding: '40px' }}
-          >
-            {loading
-              ? t('loading', '加载中...')
-              : t('noPages', '没有配置章节页面。请点击右上角【页面设置】按钮添加。')}
-          </div>
-        )}
-
-        {/* Photoshop Zoom Overlay Controls */}
-        {imageUrl && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '20px',
-              right: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: 'rgba(27, 38, 54, 0.85)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              borderRadius: '8px',
-              padding: '4px 8px',
-              zIndex: 10,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-            }}
-          >
-            <button
-              onClick={zoomOut}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#fff',
-                fontSize: '16px',
-                cursor: 'pointer',
-                width: '24px',
-                height: '24px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              -
-            </button>
-            <span
-              style={{
-                color: '#fff',
-                fontSize: '12px',
-                minWidth: '40px',
-                textAlign: 'center',
-                fontWeight: 'bold',
-              }}
-            >
-              {Math.round(zoom * 100)}%
-            </span>
-            <button
-              onClick={zoomIn}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#fff',
-                fontSize: '16px',
-                cursor: 'pointer',
-                width: '24px',
-                height: '24px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              +
-            </button>
-            <button
-              onClick={resetZoom}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#94a3b8',
-                fontSize: '12px',
-                cursor: 'pointer',
-                padding: '0 4px',
-                marginLeft: '4px',
-              }}
-            >
-              Fit
-            </button>
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Glossary Modal */}
