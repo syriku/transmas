@@ -5,6 +5,10 @@ export const EXPORT_SUFFIXES_EN = ['_translated', '_reviewed', '_exported'] as c
 export const EXPORT_SUFFIXES_ZH = ['_已翻译', '_已校对', '_导出'] as const
 export const EXPORT_SUFFIXES = [...EXPORT_SUFFIXES_EN, ...EXPORT_SUFFIXES_ZH]
 
+export const PRESET_TAGS_RAW = ['inside', 'outside'] as const
+export const PRESET_TAGS_EN = ['Inside', 'Outside'] as const
+export const PRESET_TAGS_ZH = ['框内', '框外'] as const
+
 const resources = {
   en: {
     translation: {
@@ -116,6 +120,14 @@ const resources = {
       deleteChapterTitle: 'Confirm Delete Chapter',
       systemSettings: 'System Settings',
       enableWebExtension: 'Enable Web Extension Support',
+      tagInside: PRESET_TAGS_EN[0],
+      tagOutside: PRESET_TAGS_EN[1],
+      tagManagement: 'Tag Management',
+      tag: 'Tag',
+      tagPlaceholder: 'New tag name...',
+      addTag: 'Add Tag',
+      lastTagWarning: 'At least one tag is required',
+      settingsTitle: 'Settings (Shortcut: G)',
 
       back: 'Back',
       translate: 'Translate',
@@ -268,6 +280,14 @@ const resources = {
       deleteChapterTitle: '确认删除章节',
       systemSettings: '系统设置',
       enableWebExtension: '启用网页插件支持',
+      tagInside: PRESET_TAGS_ZH[0],
+      tagOutside: PRESET_TAGS_ZH[1],
+      tagManagement: '标签管理',
+      tag: '标签',
+      tagPlaceholder: '新标签名称...',
+      addTag: '添加标签',
+      lastTagWarning: '至少需要保留一个标签',
+      settingsTitle: '设置 (Shortcut: G)',
 
       back: '返回',
       translate: '翻译',

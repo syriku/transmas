@@ -5,13 +5,14 @@ import { useApp } from './AppContext'
 import {
   GetChapterPageMetas,
   UpdateChapterPages,
+  GetChapterTags,
 } from '../bindings/github.com/syriku/transmas/service/agentservice'
 import {
   ListCandidatePages,
   SetWorkspace,
 } from '../bindings/github.com/syriku/transmas/service/systemservice'
 import { PageMeta } from '../bindings/github.com/syriku/transmas/agents/comicagents/comicdb/models'
-import GlossaryModal from './widgets/GlossaryModal'
+import LabelSettingsModal from './widgets/LabelSettingsModal'
 import Toast from './widgets/Toast'
 import ImagePreviewer, { ImagePreviewerRef } from './widgets/ImagePreviewer'
 
@@ -550,6 +551,8 @@ const LabelPage: React.FC = () => {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [isGlossaryModalOpen, setIsGlossaryModalOpen] = useState(false)
   const [isSetupModalOpen, setIsSetupModalOpen] = useState(false)
+  const [tags, setTags] = useState<string[]>([])
+  const [activeTagIndex, setActiveTagIndex] = useState(0)
 
   const previewerRef = useRef<ImagePreviewerRef>(null)
 
@@ -579,9 +582,41 @@ const LabelPage: React.FC = () => {
     }
   }
 
+  const fetchTags = async () => {
+    if (!projectName || chapterOrder === null) return
+    try {
+      const fetchedTags = await GetChapterTags(projectName, chapterOrder)
+      setTags(fetchedTags || [])
+    } catch (err: any) {
+      console.error('Failed to get chapter tags:', err)
+    }
+  }
+
   useEffect(() => {
     fetchPageMetas()
+    fetchTags()
   }, [projectName, chapterOrder])
+
+  const translateTag = (tag: string) => {
+    if (tag === 'inside') return t('tagInside', '框内')
+    if (tag === 'outside') return t('tagOutside', '框外')
+    return tag
+  }
+
+  const formatTagName = (tag: string, maxLen?: number) => {
+    const translated = translateTag(tag)
+    if (maxLen && translated.length > maxLen) {
+      return translated.slice(0, maxLen) + '...'
+    }
+    return translated
+  }
+
+  const handleSaveTags = (updatedTags: string[]) => {
+    setTags(updatedTags)
+    if (activeTagIndex >= updatedTags.length) {
+      setActiveTagIndex(0)
+    }
+  }
 
   const resetZoom = () => {
     previewerRef.current?.resetZoom()
@@ -756,6 +791,181 @@ const LabelPage: React.FC = () => {
 
         {/* Toolbar Buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {tags.length > 0 && (
+            <div style={{ marginRight: '8px', display: 'inline-flex', alignItems: 'center' }}>
+              {tags.length === 1 && (
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '0 16px',
+                    backgroundColor: '#eff6ff',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '700',
+                    color: '#1e40af',
+                    height: '40px',
+                    boxSizing: 'border-box',
+                    maxWidth: '120px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                  title={translateTag(tags[0])}
+                >
+                  {formatTagName(tags[0], 8)}
+                </div>
+              )}
+
+              {tags.length === 2 && (
+                <div
+                  onClick={() => setActiveTagIndex((prev) => (prev === 0 ? 1 : 0))}
+                  style={{
+                    display: 'inline-flex',
+                    backgroundColor: '#f1f5f9',
+                    borderRadius: '8px',
+                    padding: '2px',
+                    height: '40px',
+                    alignItems: 'center',
+                    boxSizing: 'border-box',
+                    border: '1px solid #e2e8f0',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                  }}
+                  title={t('toggleActiveTag', '点击切换标签')}
+                >
+                  {tags.map((tag, i) => {
+                    const isSelected = activeTagIndex === i
+                    return (
+                      <div
+                        key={tag}
+                        style={{
+                          padding: '0 12px',
+                          height: '34px',
+                          backgroundColor: isSelected ? '#fff' : 'transparent',
+                          color: isSelected ? '#1e293b' : '#64748b',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '13px',
+                          fontWeight: isSelected ? '700' : '500',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s',
+                          maxWidth: '80px',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          boxShadow: isSelected ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                          margin: 0,
+                          pointerEvents: 'none',
+                        }}
+                        title={translateTag(tag)}
+                      >
+                        {formatTagName(tag, 6)}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {tags.length === 3 && (
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    height: '40px',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {tags.map((tag, i) => {
+                    const isSelected = activeTagIndex === i
+                    return (
+                      <label
+                        key={tag}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          color: isSelected ? '#1e40af' : '#475569',
+                          padding: '0 12px',
+                          backgroundColor: isSelected ? '#eff6ff' : '#fff',
+                          border: `1px solid ${isSelected ? '#3b82f6' : '#cbd5e1'}`,
+                          borderRadius: '8px',
+                          transition: 'all 0.15s',
+                          height: '38px',
+                          boxSizing: 'border-box',
+                          userSelect: 'none',
+                          maxWidth: '90px',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                        title={translateTag(tag)}
+                      >
+                        <input
+                          type="radio"
+                          name="activeTagGroup"
+                          checked={isSelected}
+                          onChange={() => setActiveTagIndex(i)}
+                          style={{
+                            margin: 0,
+                            cursor: 'pointer',
+                            accentColor: '#3b82f6',
+                          }}
+                        />
+                        <span
+                          style={{
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            maxWidth: '70px',
+                          }}
+                        >
+                          {formatTagName(tag, 5)}
+                        </span>
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+
+              {tags.length > 3 && (
+                <select
+                  value={activeTagIndex}
+                  onChange={(e) => setActiveTagIndex(parseInt(e.target.value))}
+                  style={{
+                    height: '40px',
+                    padding: '0 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #ddd',
+                    backgroundColor: '#fff',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#333',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                    boxSizing: 'border-box',
+                    maxWidth: '150px',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {tags.map((tag, i) => (
+                    <option key={tag} value={i}>
+                      {translateTag(tag)}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+
           <button
             onClick={() => setIsSetupModalOpen(true)}
             title="页面设置 (Shortcut: P)"
@@ -810,7 +1020,7 @@ const LabelPage: React.FC = () => {
 
           <button
             onClick={() => setIsGlossaryModalOpen(true)}
-            title="术语表 (Shortcut: G)"
+            title={t('settingsTitle', '设置 (Shortcut: G)')}
             style={{
               width: 'auto',
               whiteSpace: 'nowrap',
@@ -851,10 +1061,10 @@ const LabelPage: React.FC = () => {
               strokeLinecap="round"
               strokeLinejoin="round"
             >
-              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.52 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
-            {t('glossary', '术语表')}
+            {t('settings', '设置')}
           </button>
         </div>
       </div>
@@ -994,7 +1204,13 @@ const LabelPage: React.FC = () => {
             overflow: 'hidden',
           }}
         >
-          <ImagePreviewer ref={previewerRef} imageUrl={imageUrl} loading={loading} />
+          <ImagePreviewer
+            ref={previewerRef}
+            imageUrl={imageUrl}
+            loading={loading}
+            tags={tags}
+            activeTagIndex={activeTagIndex}
+          />
         </div>
 
         {/* Right Column: Empty Editor-Style Box */}
@@ -1021,9 +1237,15 @@ const LabelPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Glossary Modal */}
-      {isGlossaryModalOpen && projectName && (
-        <GlossaryModal projectName={projectName} onClose={() => setIsGlossaryModalOpen(false)} />
+      {/* Settings Modal */}
+      {isGlossaryModalOpen && projectName && chapterOrder !== null && (
+        <LabelSettingsModal
+          projectName={projectName}
+          chapterOrder={chapterOrder}
+          tags={tags}
+          onSaveTags={handleSaveTags}
+          onClose={() => setIsGlossaryModalOpen(false)}
+        />
       )}
 
       {/* Page Setup Modal */}

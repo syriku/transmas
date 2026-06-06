@@ -9,10 +9,12 @@ export interface ImagePreviewerRef {
 interface ImagePreviewerProps {
   imageUrl: string
   loading: boolean
+  tags?: string[]
+  activeTagIndex?: number
 }
 
 const ImagePreviewer = forwardRef<ImagePreviewerRef, ImagePreviewerProps>(
-  ({ imageUrl, loading }, ref) => {
+  ({ imageUrl, loading, tags, activeTagIndex }, ref) => {
     const [zoom, setZoom] = useState(1)
     const [pan, setPan] = useState({ x: 0, y: 0 })
     const [isDragging, setIsDragging] = useState(false)
