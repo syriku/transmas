@@ -292,6 +292,11 @@ const ImagePreviewer = forwardRef<ImagePreviewerRef, ImagePreviewerProps>(
         <style>{`
           .tag-container {
             pointer-events: auto;
+            opacity: 0.6;
+            transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          }
+          .tag-container:hover {
+            opacity: 1 !important;
           }
           .tag-container:hover .tag-label {
             transform: translate(-50%, -8px) scale(1) !important;
@@ -325,7 +330,7 @@ const ImagePreviewer = forwardRef<ImagePreviewerRef, ImagePreviewerProps>(
             />
 
             {imgSize.w > 0 &&
-              tagInstances.map((tag) => {
+              tagInstances.map((tag, idx) => {
                 const displayW = imgSize.w * zoom * fitScale
                 const displayH = imgSize.h * zoom * fitScale
                 const transformX = pan.x + (tag.x - 0.5) * displayW
@@ -357,23 +362,23 @@ const ImagePreviewer = forwardRef<ImagePreviewerRef, ImagePreviewerProps>(
                   >
                     <div
                       style={{
-                        width: '28px',
-                        height: '28px',
+                        width: '18px',
+                        height: '18px',
                         borderRadius: '50%',
                         backgroundColor: color,
-                        border: '2px solid #ffffff',
-                        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.35)',
+                        border: '1.5px solid #ffffff',
+                        boxShadow: '0 3px 8px rgba(0, 0, 0, 0.35)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: '#1b2636',
-                        fontSize: '14px',
+                        fontSize: '10px',
                         fontWeight: 'bold',
                         textShadow: '0 1px 2px rgba(255, 255, 255, 0.4)',
                         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                       }}
                     >
-                      {tag.tagIndex + 1}
+                      {idx + 1}
                     </div>
 
                     <div
