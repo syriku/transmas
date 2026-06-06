@@ -2,6 +2,7 @@ package agents
 
 import (
 	"github.com/syriku/aisdk/request"
+	"github.com/syriku/transmas/agents/comicagents/comicdb"
 	"github.com/syriku/transmas/agents/database"
 	"gorm.io/gorm"
 )
@@ -21,6 +22,8 @@ type ChapterAgent interface {
 	AddChapter(projectName string, order uint, title string) error
 	UpdateChapterTitle(projectName string, order uint, title string) error
 	DeleteChapter(projectName string, order uint) error
+	UpdateChapterPages(projectName string, chapterOrder uint, pages []string) error
+	GetChapterPageMetas(projectName string, chapterOrder uint) ([]comicdb.PageMeta, error)
 }
 
 func listProjects(db *gorm.DB, user string) ([]database.ProjectInfo, error) {

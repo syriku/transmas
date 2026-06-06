@@ -100,6 +100,15 @@ export function SetWorkspace(workspace: string): $CancellablePromise<void> {
     return $Call.ByID(2924081106, workspace);
 }
 
+/**
+ * SortPagesNatural sorts the given list of pages naturally (alphanumeric sorting).
+ */
+export function SortPagesNatural(pages: string[]): $CancellablePromise<string[]> {
+    return $Call.ByID(965215698, pages).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = $Create.Map($Create.Any, $Create.Any);

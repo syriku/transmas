@@ -8,6 +8,7 @@ import (
 	"github.com/syriku/aisdk/request"
 	"github.com/syriku/quill-delta/quilldelta"
 	"github.com/syriku/transmas/agents"
+	"github.com/syriku/transmas/agents/comicagents/comicdb"
 	"github.com/syriku/transmas/agents/database"
 	"github.com/syriku/transmas/agents/meta"
 	"gorm.io/gorm"
@@ -182,6 +183,28 @@ func (a *AgentService) DeleteChapter(projectName string, order uint) error {
 		return fmt.Errorf("log in first please")
 	}
 	return agent.DeleteChapter(projectName, order)
+}
+
+func (a *AgentService) UpdateChapterPages(projectName string, chapterOrder uint, pages []string) error {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return fmt.Errorf("log in first please")
+	}
+	return agent.UpdateChapterPages(projectName, chapterOrder, pages)
+}
+
+func (a *AgentService) GetChapterPageMetas(projectName string, chapterOrder uint) ([]comicdb.PageMeta, error) {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return nil, fmt.Errorf("log in first please")
+	}
+	return agent.GetChapterPageMetas(projectName, chapterOrder)
 }
 
 func (a *AgentService) GetGlossary(projectName string) ([]request.GlossaryEntry, error) {

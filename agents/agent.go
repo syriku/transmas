@@ -17,6 +17,7 @@ import (
 	"github.com/syriku/label-go/comic"
 	"github.com/syriku/quill-delta/quilldelta"
 	"github.com/syriku/transmas/agents/comicagents"
+	"github.com/syriku/transmas/agents/comicagents/comicdb"
 	"github.com/syriku/transmas/agents/database"
 	"github.com/syriku/transmas/agents/meta"
 	"github.com/syriku/transmas/server"
@@ -631,6 +632,34 @@ func (i *translateAgentImpl) DeleteChapter(projectName string, order uint) error
 		return i.comicAgent.DeleteChapter(proj.WorkDir, order)
 	}
 	return deleteChapter(i.db, i.userData.Username, projectName, order)
+}
+
+func (i *translateAgentImpl) UpdateChapterPages(projectName string, chapterOrder uint, pages []string) error {
+	proj, err := database.FetchProjectByOwnerAndTitle(i.db, i.userData.Username, projectName)
+	if err != nil {
+		return err
+	}
+	if proj.ProjectType != database.ProjectTypeComic {
+		return fmt.Errorf("project is not a comic project")
+	}
+	if proj.WorkDir == "" {
+		return fmt.Errorf("project work directory not set")
+	}
+	return i.comicAgent.UpdateChapterPages(proj.WorkDir, chapterOrder, pages)
+}
+
+func (i *translateAgentImpl) GetChapterPageMetas(projectName string, chapterOrder uint) ([]comicdb.PageMeta, error) {
+	proj, err := database.FetchProjectByOwnerAndTitle(i.db, i.userData.Username, projectName)
+	if err != nil {
+		return nil, err
+	}
+	if proj.ProjectType != database.ProjectTypeComic {
+		return nil, fmt.Errorf("project is not a comic project")
+	}
+	if proj.WorkDir == "" {
+		return nil, fmt.Errorf("project work directory not set")
+	}
+	return i.comicAgent.GetChapterPageMetas(proj.WorkDir, chapterOrder)
 }
 
 func (i *translateAgentImpl) GetChapterMeta() (*meta.ChapterMeta, error) {

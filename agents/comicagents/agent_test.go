@@ -120,6 +120,20 @@ func TestEnsureProject(t *testing.T) {
 		}
 	}
 
+	// Verify PageMeta database records
+	var dbPageMetas []comicdb.PageMeta
+	if err := db.Find(&dbPageMetas).Error; err != nil {
+		t.Fatalf("failed to query page metas from db: %v", err)
+	}
+	if len(dbPageMetas) != 2 {
+		t.Errorf("expected 2 page metas in db, got %d", len(dbPageMetas))
+	} else {
+		pm := dbPageMetas[0]
+		if pm.FileName != "page1.jpg" {
+			t.Errorf("expected page1.jpg, got %s", pm.FileName)
+		}
+	}
+
 	// Call EnsureProject a second time and make sure it does not duplicate
 	err = agent.EnsureProject(workComic)
 	if err != nil {
@@ -130,5 +144,108 @@ func TestEnsureProject(t *testing.T) {
 	db.Model(&comicdb.Comic{}).Count(&totalComics)
 	if totalComics != 1 {
 		t.Errorf("expected 1 comic after second run, got %d", totalComics)
+	}
+}
+
+func TestUpdateAndGetChapterPages(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "transmas-comicagent-pages-test")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	workComic := comic.WorkComic{
+		Comic: comic.Comic{
+			Title:    "Test Comic Pages",
+			Chapters: 1,
+		},
+		WorkDir: tempDir,
+		Chapters: []comic.WorkChapter{
+			{
+				Chapter: comic.Chapter{
+					Title:     "Chapter 1",
+					Order:     1,
+					PageCount: 0,
+				},
+				DirName: "chap1",
+				Pages:   []comic.PageMeta{},
+			},
+		},
+	}
+
+	agent := NewComicAgent()
+	err = agent.EnsureProject(workComic)
+	if err != nil {
+		t.Fatalf("EnsureProject failed: %v", err)
+	}
+
+	// Create chapter directory
+	chapDir := filepath.Join(tempDir, "chap1")
+	if err := os.MkdirAll(chapDir, 0755); err != nil {
+		t.Fatalf("failed to create chap dir: %v", err)
+	}
+
+	// Create dummy files
+	if err := os.WriteFile(filepath.Join(chapDir, "img1.png"), []byte("png"), 0644); err != nil {
+		t.Fatalf("failed to write dummy: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(chapDir, "img2.jpg"), []byte("jpg"), 0644); err != nil {
+		t.Fatalf("failed to write dummy: %v", err)
+	}
+
+	// Update chapter pages
+	pages := []string{"img2.jpg", "img1.png"}
+	err = agent.UpdateChapterPages(tempDir, 1, pages)
+	if err != nil {
+		t.Fatalf("UpdateChapterPages failed: %v", err)
+	}
+
+	// Retrieve page metas
+	metas, err := agent.GetChapterPageMetas(tempDir, 1)
+	if err != nil {
+		t.Fatalf("GetChapterPageMetas failed: %v", err)
+	}
+
+	if len(metas) != 2 {
+		t.Fatalf("expected 2 metas, got %d", len(metas))
+	}
+	if metas[0].FileName != "img2.jpg" || metas[1].FileName != "img1.png" {
+		t.Errorf("unexpected ordered metas: %v", metas)
+	}
+	if metas[1].Format != comic.PNG {
+		t.Errorf("expected PNG format for img1.png, got %v", metas[1].Format)
+	}
+
+	// Test user's comment behavior: even if page is removed, it remains in PageMeta table.
+	pages2 := []string{"img1.png"}
+	err = agent.UpdateChapterPages(tempDir, 1, pages2)
+	if err != nil {
+		t.Fatalf("second UpdateChapterPages failed: %v", err)
+	}
+
+	// Connect to db and verify PageMeta count is still 2
+	dbFile := filepath.Join(tempDir, "comic_project")
+	db, err := gorm.Open(sqlite.Open(dbFile), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("failed to connect to db: %v", err)
+	}
+
+	var count int64
+	if err := db.Model(&comicdb.PageMeta{}).Count(&count).Error; err != nil {
+		t.Fatalf("failed to count pagemetas: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("expected 2 page metas in DB, got %d", count)
+	}
+
+	// GetChapterPageMetas should now return only 1 meta corresponding to the active pages
+	activeMetas, err := agent.GetChapterPageMetas(tempDir, 1)
+	if err != nil {
+		t.Fatalf("GetChapterPageMetas failed: %v", err)
+	}
+	if len(activeMetas) != 1 {
+		t.Errorf("expected 1 active meta, got %d", len(activeMetas))
+	} else if activeMetas[0].FileName != "img1.png" {
+		t.Errorf("expected active meta img1.png, got %s", activeMetas[0].FileName)
 	}
 }

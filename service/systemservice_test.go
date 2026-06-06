@@ -210,3 +210,13 @@ func TestSystemService_ListCandidatePages(t *testing.T) {
 		t.Errorf("expected candidate pages %v, got %v", expected, pages)
 	}
 }
+
+func TestSystemService_SortPagesNatural(t *testing.T) {
+	ss := NewSystemService()
+	input := []string{"page10.png", "page2.png", "page1.png", "page02.png", "page002.png"}
+	expected := []string{"page1.png", "page2.png", "page02.png", "page002.png", "page10.png"}
+	output := ss.SortPagesNatural(input)
+	if !reflect.DeepEqual(output, expected) {
+		t.Errorf("expected sorted pages %v, got %v", expected, output)
+	}
+}

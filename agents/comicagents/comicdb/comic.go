@@ -13,9 +13,12 @@ type Comic struct {
 }
 
 type PageMeta struct {
-	FileName string            `json:"filename"`
-	Format   comic.ImageFormat `json:"format"`
-	Size     [2]uint           `json:"size"`
+	gorm.Model
+	ComicID   uint              `gorm:"uniqueIndex:idx_comic_chapter_filename"`
+	ChapterID uint              `gorm:"uniqueIndex:idx_comic_chapter_filename"`
+	FileName  string            `gorm:"uniqueIndex:idx_comic_chapter_filename" json:"filename"`
+	Format    comic.ImageFormat `json:"format"`
+	Size      [2]uint           `gorm:"serializer:json" json:"size"`
 }
 
 type Chapter struct {
@@ -25,8 +28,8 @@ type Chapter struct {
 	Order     uint   `gorm:"uniqueIndex:idx_chapter_comic_order"`
 	DirName   string
 	PageCount uint
-	Pages     []PageMeta `gorm:"serializer:json"`
-	Tags      []string   `gorm:"serializer:json"`
+	Pages     []string `gorm:"serializer:json"`
+	Tags      []string `gorm:"serializer:json"`
 }
 
 type Label struct {

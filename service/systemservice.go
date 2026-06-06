@@ -5,7 +5,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/syriku/aisdk/request"
 	"github.com/syriku/transmas/agents"
@@ -183,6 +186,11 @@ func (s *SystemService) ListCandidatePages(dir string) ([]string, error) {
 			files = append(files, name)
 		}
 	}
+
+	sort.Slice(files, func(i, j int) bool {
+		return CompareNatural(files[i], files[j]) < 0
+	})
+
 	return files, nil
 }
 
@@ -192,4 +200,96 @@ func (s *SystemService) GetLanguagesMap() map[request.Language]string {
 
 func (s *SystemService) GetSystemLanguage() string {
 	return getSystemLanguage()
+}
+
+// SortPagesNatural sorts the given list of pages naturally (alphanumeric sorting).
+func (s *SystemService) SortPagesNatural(pages []string) []string {
+	result := make([]string, len(pages))
+	copy(result, pages)
+	sort.Slice(result, func(i, j int) bool {
+		return CompareNatural(result[i], result[j]) < 0
+	})
+	return result
+}
+
+// CompareNatural compares two strings naturally (case-insensitive alphanumeric comparison).
+func CompareNatural(a, b string) int {
+	i, j := 0, 0
+	for i < len(a) && j < len(b) {
+		r1, size1 := utf8.DecodeRuneInString(a[i:])
+		r2, size2 := utf8.DecodeRuneInString(b[j:])
+
+		isDigit1 := r1 >= '0' && r1 <= '9'
+		isDigit2 := r2 >= '0' && r2 <= '9'
+
+		if isDigit1 && isDigit2 {
+			endI := i
+			for endI < len(a) {
+				r, sz := utf8.DecodeRuneInString(a[endI:])
+				if r < '0' || r > '9' {
+					break
+				}
+				endI += sz
+			}
+			numStrA := a[i:endI]
+
+			endJ := j
+			for endJ < len(b) {
+				r, sz := utf8.DecodeRuneInString(b[endJ:])
+				if r < '0' || r > '9' {
+					break
+				}
+				endJ += sz
+			}
+			numStrB := b[j:endJ]
+
+			cleanA := strings.TrimLeft(numStrA, "0")
+			cleanB := strings.TrimLeft(numStrB, "0")
+
+			if len(cleanA) != len(cleanB) {
+				if len(cleanA) < len(cleanB) {
+					return -1
+				}
+				return 1
+			}
+
+			for k := 0; k < len(cleanA); k++ {
+				if cleanA[k] != cleanB[k] {
+					if cleanA[k] < cleanB[k] {
+						return -1
+					}
+					return 1
+				}
+			}
+
+			if len(numStrA) != len(numStrB) {
+				if len(numStrA) < len(numStrB) {
+					return -1
+				}
+				return 1
+			}
+
+			i = endI
+			j = endJ
+		} else {
+			lf1 := unicode.ToLower(r1)
+			lf2 := unicode.ToLower(r2)
+			if lf1 != lf2 {
+				if lf1 < lf2 {
+					return -1
+				}
+				return 1
+			}
+			i += size1
+			j += size2
+		}
+	}
+
+	if i < len(a) {
+		return 1
+	}
+	if j < len(b) {
+		return -1
+	}
+	return 0
 }
