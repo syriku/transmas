@@ -687,6 +687,15 @@ const LabelPage: React.FC = () => {
 
       const key = e.key.toLowerCase()
 
+      // Handle hotkeys '1' to '7' (both row keys and numpad)
+      if (/^[1-7]$/.test(e.key)) {
+        const index = parseInt(e.key) - 1
+        if (index >= 0 && index < tags.length) {
+          e.preventDefault()
+          setActiveTagIndex(index)
+        }
+      }
+
       if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
         e.preventDefault()
         handlePrevPage()
@@ -713,7 +722,7 @@ const LabelPage: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [pageMetas, currentPageIndex, isGlossaryModalOpen, isSetupModalOpen])
+  }, [pageMetas, currentPageIndex, isGlossaryModalOpen, isSetupModalOpen, tags])
 
   const handlePrevPage = () => {
     if (currentPageIndex > 0) {
