@@ -9,7 +9,6 @@ import {
   GetChapterTags,
   UpdatePageLabels,
   ExportLp,
-  ImportLp,
 } from '../bindings/github.com/syriku/transmas/service/agentservice'
 import {
   ListCandidatePages,
@@ -663,24 +662,6 @@ const LabelPage: React.FC = () => {
     }
   }
 
-  const handleImportLp = async () => {
-    if (!projectName || chapterOrder === null) return
-    try {
-      const filePath = await Dialogs.OpenFile({
-        Title: t('importLp', '导入 LP 格式'),
-        Filters: [{ DisplayName: 'Text Files', Pattern: '*.txt' }],
-      })
-      if (filePath) {
-        await ImportLp(projectName, chapterOrder, filePath)
-        setToast({ message: t('importSuccess', '导入成功'), type: 'success' })
-        await fetchPageMetas()
-      }
-    } catch (err: any) {
-      console.error('Failed to import LP:', err)
-      setToast({ message: t('failedToImport', '导入失败: ') + err.message, type: 'error' })
-    }
-  }
-
   useEffect(() => {
     if (currentProject?.WorkDir) {
       SetWorkspace(currentProject.WorkDir).catch((err) => {
@@ -1115,57 +1096,6 @@ const LabelPage: React.FC = () => {
               )}
             </div>
           )}
-
-          <button
-            onClick={handleImportLp}
-            title={t('importLp', '导入 LP 格式')}
-            style={{
-              width: 'auto',
-              whiteSpace: 'nowrap',
-              height: '40px',
-              padding: '0 16px',
-              backgroundColor: 'white',
-              color: '#333',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '14px',
-              fontWeight: '600',
-              transition: 'all 0.2s',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-              margin: 0,
-              lineHeight: '1',
-              flexShrink: 0,
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = '#f5f5f5'
-              e.currentTarget.style.borderColor = '#ccc'
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.backgroundColor = 'white'
-              e.currentTarget.style.borderColor = '#ddd'
-            }}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
-            {t('importLp', '导入 LP')}
-          </button>
 
           <button
             onClick={handleExportLp}

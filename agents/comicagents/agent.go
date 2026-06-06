@@ -694,11 +694,19 @@ func (c *comicAgentImpl) ImportLp(workDir string, order uint, filePath string) e
 					if strings.ToLower(filepath.Ext(filename)) == ".png" {
 						format = comic.PNG
 					}
+					size := [2]uint{0, 0}
+					filePath := filepath.Join(workDir, ch.DirName, filename)
+					if f, err := os.Open(filePath); err == nil {
+						if cfg, _, err := image.DecodeConfig(f); err == nil {
+							size = [2]uint{uint(cfg.Width), uint(cfg.Height)}
+						}
+						f.Close()
+					}
 					pm = comicdb.PageMeta{
 						ChapterID: ch.ID,
 						FileName:  filename,
 						Format:    format,
-						Size:      [2]uint{0, 0},
+						Size:      size,
 						Labels:    labels,
 					}
 					if err := tx.Create(&pm).Error; err != nil {
@@ -709,6 +717,15 @@ func (c *comicAgentImpl) ImportLp(workDir string, order uint, filePath string) e
 				}
 			} else {
 				pm.Labels = labels
+				if pm.Size[0] == 0 && pm.Size[1] == 0 {
+					filePath := filepath.Join(workDir, ch.DirName, filename)
+					if f, err := os.Open(filePath); err == nil {
+						if cfg, _, err := image.DecodeConfig(f); err == nil {
+							pm.Size = [2]uint{uint(cfg.Width), uint(cfg.Height)}
+						}
+						f.Close()
+					}
+				}
 				if err := tx.Save(&pm).Error; err != nil {
 					return err
 				}
