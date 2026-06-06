@@ -488,26 +488,28 @@ func (c *comicAgentImpl) UpdatePageLabels(workDir string, order uint, filename s
 		return err
 	}
 
-	var pm comicdb.PageMeta
-	err = db.Where("chapter_id = ? AND file_name = ?", ch.ID, filename).First(&pm).Error
+	var metas []comicdb.PageMeta
+	err = db.Where("chapter_id = ? AND file_name = ?", ch.ID, filename).Limit(1).Find(&metas).Error
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			format := comic.JPG
-			if strings.ToLower(filepath.Ext(filename)) == ".png" {
-				format = comic.PNG
-			}
-			pm = comicdb.PageMeta{
-				ChapterID: ch.ID,
-				FileName:  filename,
-				Format:    format,
-				Size:      [2]uint{0, 0},
-				Labels:    labels,
-			}
-			return db.Create(&pm).Error
-		}
 		return err
 	}
 
+	if len(metas) == 0 {
+		format := comic.JPG
+		if strings.ToLower(filepath.Ext(filename)) == ".png" {
+			format = comic.PNG
+		}
+		pm := comicdb.PageMeta{
+			ChapterID: ch.ID,
+			FileName:  filename,
+			Format:    format,
+			Size:      [2]uint{0, 0},
+			Labels:    labels,
+		}
+		return db.Create(&pm).Error
+	}
+
+	pm := metas[0]
 	pm.Labels = labels
 	return db.Save(&pm).Error
 }
@@ -684,38 +686,38 @@ func (c *comicAgentImpl) ImportLp(workDir string, order uint, filePath string) e
 		}
 
 		for _, filename := range ch.Pages {
-			var pm comicdb.PageMeta
-			err := tx.Where("chapter_id = ? AND file_name = ?", ch.ID, filename).First(&pm).Error
+			var metas []comicdb.PageMeta
+			err := tx.Where("chapter_id = ? AND file_name = ?", ch.ID, filename).Limit(1).Find(&metas).Error
+			if err != nil {
+				return err
+			}
 			labels := labelsByPage[filename]
 
-			if err != nil {
-				if errors.Is(err, gorm.ErrRecordNotFound) {
-					format := comic.JPG
-					if strings.ToLower(filepath.Ext(filename)) == ".png" {
-						format = comic.PNG
+			if len(metas) == 0 {
+				format := comic.JPG
+				if strings.ToLower(filepath.Ext(filename)) == ".png" {
+					format = comic.PNG
+				}
+				size := [2]uint{0, 0}
+				filePath := filepath.Join(workDir, ch.DirName, filename)
+				if f, err := os.Open(filePath); err == nil {
+					if cfg, _, err := image.DecodeConfig(f); err == nil {
+						size = [2]uint{uint(cfg.Width), uint(cfg.Height)}
 					}
-					size := [2]uint{0, 0}
-					filePath := filepath.Join(workDir, ch.DirName, filename)
-					if f, err := os.Open(filePath); err == nil {
-						if cfg, _, err := image.DecodeConfig(f); err == nil {
-							size = [2]uint{uint(cfg.Width), uint(cfg.Height)}
-						}
-						f.Close()
-					}
-					pm = comicdb.PageMeta{
-						ChapterID: ch.ID,
-						FileName:  filename,
-						Format:    format,
-						Size:      size,
-						Labels:    labels,
-					}
-					if err := tx.Create(&pm).Error; err != nil {
-						return err
-					}
-				} else {
+					f.Close()
+				}
+				pm := comicdb.PageMeta{
+					ChapterID: ch.ID,
+					FileName:  filename,
+					Format:    format,
+					Size:      size,
+					Labels:    labels,
+				}
+				if err := tx.Create(&pm).Error; err != nil {
 					return err
 				}
 			} else {
+				pm := metas[0]
 				pm.Labels = labels
 				if pm.Size[0] == 0 && pm.Size[1] == 0 {
 					filePath := filepath.Join(workDir, ch.DirName, filename)
