@@ -14,7 +14,7 @@ import {
 import { PageMeta } from '../bindings/github.com/syriku/transmas/agents/comicagents/comicdb/models'
 import LabelSettingsModal from './widgets/LabelSettingsModal'
 import Toast from './widgets/Toast'
-import ImagePreviewer, { ImagePreviewerRef } from './widgets/ImagePreviewer'
+import ImagePreviewer, { ImagePreviewerRef, TagInstance } from './widgets/ImagePreviewer'
 
 // PageSetupModal Component
 interface PageSetupModalProps {
@@ -554,7 +554,51 @@ const LabelPage: React.FC = () => {
   const [tags, setTags] = useState<string[]>([])
   const [activeTagIndex, setActiveTagIndex] = useState(0)
 
+  const [pageTagInstances, setPageTagInstances] = useState<Record<string, TagInstance[]>>({})
+
   const previewerRef = useRef<ImagePreviewerRef>(null)
+
+  const currentFilename = pageMetas[currentPageIndex]?.filename
+
+  const handleAddTag = (x: number, y: number) => {
+    if (!currentFilename) return
+    const newTag: TagInstance = {
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      tagIndex: activeTagIndex,
+      x,
+      y,
+    }
+    setPageTagInstances((prev) => ({
+      ...prev,
+      [currentFilename]: [...(prev[currentFilename] || []), newTag],
+    }))
+  }
+
+  const handleMoveTag = (id: string, x: number, y: number) => {
+    if (!currentFilename) return
+    setPageTagInstances((prev) => ({
+      ...prev,
+      [currentFilename]: (prev[currentFilename] || []).map((tag) =>
+        tag.id === id ? { ...tag, x, y } : tag,
+      ),
+    }))
+  }
+
+  const handleDeleteTag = (id: string) => {
+    if (!currentFilename) return
+    setPageTagInstances((prev) => ({
+      ...prev,
+      [currentFilename]: (prev[currentFilename] || []).filter((tag) => tag.id !== id),
+    }))
+  }
+
+  const handleTagClick = (tag: TagInstance) => {
+    console.log('Clicked tag:', tag)
+  }
+
+  const handleTagHover = (tag: TagInstance) => {
+    console.log('Hovered tag:', tag)
+  }
 
   useEffect(() => {
     if (currentProject?.WorkDir) {
@@ -1210,6 +1254,12 @@ const LabelPage: React.FC = () => {
             loading={loading}
             tags={tags}
             activeTagIndex={activeTagIndex}
+            tagInstances={currentFilename ? pageTagInstances[currentFilename] || [] : []}
+            onAddTag={handleAddTag}
+            onMoveTag={handleMoveTag}
+            onDeleteTag={handleDeleteTag}
+            onTagClick={handleTagClick}
+            onTagHover={handleTagHover}
           />
         </div>
 
