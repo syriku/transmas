@@ -60,6 +60,8 @@ const ImagePreviewer = forwardRef<ImagePreviewerRef, ImagePreviewerProps>(
 
     const [imgSize, setImgSize] = useState({ w: 0, h: 0 })
     const [fitScale, setFitScale] = useState(1)
+    const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null)
+    const [isHoveringTag, setIsHoveringTag] = useState(false)
 
     const containerRef = useRef<HTMLDivElement>(null)
 
@@ -132,6 +134,14 @@ const ImagePreviewer = forwardRef<ImagePreviewerRef, ImagePreviewerProps>(
     }
 
     const handleMouseMove = (e: React.MouseEvent) => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        setMousePos({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        })
+      }
+
       if (!isDragging) return
       setPan({
         x: e.clientX - dragStart.x,
@@ -151,6 +161,11 @@ const ImagePreviewer = forwardRef<ImagePreviewerRef, ImagePreviewerProps>(
         }
       }
       mouseDownPos.current = null
+    }
+
+    const handleMouseLeave = (e: React.MouseEvent) => {
+      handleMouseUp(e)
+      setMousePos(null)
     }
 
     const handleImageClick = (e: React.MouseEvent) => {
@@ -235,9 +250,14 @@ const ImagePreviewer = forwardRef<ImagePreviewerRef, ImagePreviewerProps>(
     }
 
     const handleTagMouseEnter = (tag: TagInstance) => {
+      setIsHoveringTag(true)
       if (onTagHover) {
         onTagHover(tag)
       }
+    }
+
+    const handleTagMouseLeave = () => {
+      setIsHoveringTag(false)
     }
 
     const handleWheel = (e: React.WheelEvent) => {
@@ -264,13 +284,46 @@ const ImagePreviewer = forwardRef<ImagePreviewerRef, ImagePreviewerProps>(
       }
     }
 
+    const activeColor =
+      activeTagIndex !== undefined
+        ? RAINBOW_COLORS[activeTagIndex % RAINBOW_COLORS.length]
+        : '#94a3b8'
+    let showCursorPreview = false
+    let previewLeft = 0
+    let previewTop = 0
+
+    if (
+      mousePos &&
+      !isDragging &&
+      !isHoveringTag &&
+      imageUrl &&
+      !loading &&
+      imgSize.w > 0 &&
+      containerRef.current
+    ) {
+      const rect = containerRef.current.getBoundingClientRect()
+      const displayW = imgSize.w * zoom * fitScale
+      const displayH = imgSize.h * zoom * fitScale
+      const imgLeft = rect.width / 2 + pan.x - displayW / 2
+      const imgTop = rect.height / 2 + pan.y - displayH / 2
+
+      const relativeX = mousePos.x - imgLeft
+      const relativeY = mousePos.y - imgTop
+
+      if (relativeX >= 0 && relativeX <= displayW && relativeY >= 0 && relativeY <= displayH) {
+        showCursorPreview = true
+        previewLeft = mousePos.x
+        previewTop = mousePos.y
+      }
+    }
+
     return (
       <div
         ref={containerRef}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
         onWheel={handleWheel}
         style={{
           height: '100%',
@@ -285,7 +338,7 @@ const ImagePreviewer = forwardRef<ImagePreviewerRef, ImagePreviewerProps>(
           backgroundColor: '#1b2636',
           borderRadius: '12px',
           boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.35)',
-          cursor: isDragging ? 'grabbing' : imageUrl && !loading ? 'grab' : 'default',
+          cursor: isDragging ? 'grabbing' : 'default',
           boxSizing: 'border-box',
         }}
       >
@@ -307,6 +360,35 @@ const ImagePreviewer = forwardRef<ImagePreviewerRef, ImagePreviewerProps>(
             box-shadow: 0 6px 14px rgba(0,0,0,0.45) !important;
           }
         `}</style>
+
+        {showCursorPreview && (
+          <div
+            style={{
+              position: 'absolute',
+              left: `${previewLeft}px`,
+              top: `${previewTop}px`,
+              transform: 'translate(-50%, -50%)',
+              width: '18px',
+              height: '18px',
+              borderRadius: '50%',
+              backgroundColor: activeColor,
+              border: '1.5px solid #ffffff',
+              boxShadow: '0 3px 8px rgba(0, 0, 0, 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#1b2636',
+              fontSize: '10px',
+              fontWeight: 'bold',
+              textShadow: '0 1px 2px rgba(255, 255, 255, 0.4)',
+              opacity: 0.3,
+              pointerEvents: 'none',
+              zIndex: 19,
+            }}
+          >
+            {tagInstances.length + 1}
+          </div>
+        )}
 
         {imageUrl && !loading ? (
           <>
@@ -342,6 +424,7 @@ const ImagePreviewer = forwardRef<ImagePreviewerRef, ImagePreviewerProps>(
                     key={tag.id}
                     onMouseDown={(e) => handleTagMouseDown(e, tag)}
                     onMouseEnter={() => handleTagMouseEnter(tag)}
+                    onMouseLeave={handleTagMouseLeave}
                     onContextMenu={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
