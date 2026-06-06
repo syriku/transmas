@@ -207,6 +207,28 @@ func (a *AgentService) GetChapterPageMetas(projectName string, chapterOrder uint
 	return agent.GetChapterPageMetas(projectName, chapterOrder)
 }
 
+func (a *AgentService) GetChapterTags(projectName string, chapterOrder uint) ([]string, error) {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return nil, fmt.Errorf("log in first please")
+	}
+	return agent.GetChapterTags(projectName, chapterOrder)
+}
+
+func (a *AgentService) SetChapterTags(projectName string, chapterOrder uint, tags []string) error {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return fmt.Errorf("log in first please")
+	}
+	return agent.SetChapterTags(projectName, chapterOrder, tags)
+}
+
 func (a *AgentService) GetGlossary(projectName string) ([]request.GlossaryEntry, error) {
 	a.mu.RLock()
 	agent := a.agent

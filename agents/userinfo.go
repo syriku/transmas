@@ -24,6 +24,8 @@ type ChapterAgent interface {
 	DeleteChapter(projectName string, order uint) error
 	UpdateChapterPages(projectName string, chapterOrder uint, pages []string) error
 	GetChapterPageMetas(projectName string, chapterOrder uint) ([]comicdb.PageMeta, error)
+	GetChapterTags(projectName string, chapterOrder uint) ([]string, error)
+	SetChapterTags(projectName string, chapterOrder uint, tags []string) error
 }
 
 func listProjects(db *gorm.DB, user string) ([]database.ProjectInfo, error) {

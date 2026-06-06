@@ -662,6 +662,34 @@ func (i *translateAgentImpl) GetChapterPageMetas(projectName string, chapterOrde
 	return i.comicAgent.GetChapterPageMetas(proj.WorkDir, chapterOrder)
 }
 
+func (i *translateAgentImpl) GetChapterTags(projectName string, chapterOrder uint) ([]string, error) {
+	proj, err := database.FetchProjectByOwnerAndTitle(i.db, i.userData.Username, projectName)
+	if err != nil {
+		return nil, err
+	}
+	if proj.ProjectType != database.ProjectTypeComic {
+		return nil, fmt.Errorf("project is not a comic project")
+	}
+	if proj.WorkDir == "" {
+		return nil, fmt.Errorf("project work directory not set")
+	}
+	return i.comicAgent.GetChapterTags(proj.WorkDir, chapterOrder)
+}
+
+func (i *translateAgentImpl) SetChapterTags(projectName string, chapterOrder uint, tags []string) error {
+	proj, err := database.FetchProjectByOwnerAndTitle(i.db, i.userData.Username, projectName)
+	if err != nil {
+		return err
+	}
+	if proj.ProjectType != database.ProjectTypeComic {
+		return fmt.Errorf("project is not a comic project")
+	}
+	if proj.WorkDir == "" {
+		return fmt.Errorf("project work directory not set")
+	}
+	return i.comicAgent.SetChapterTags(proj.WorkDir, chapterOrder, tags)
+}
+
 func (i *translateAgentImpl) GetChapterMeta() (*meta.ChapterMeta, error) {
 	i.chapterMu.RLock()
 	defer i.chapterMu.RUnlock()

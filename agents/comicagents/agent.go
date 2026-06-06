@@ -28,6 +28,8 @@ type ComicAgent interface {
 	GetChapterStatus(workDir string, order uint) (meta.ChapterStatus, error)
 	UpdateChapterPages(workDir string, order uint, pages []string) error
 	GetChapterPageMetas(workDir string, order uint) ([]comicdb.PageMeta, error)
+	GetChapterTags(workDir string, order uint) ([]string, error)
+	SetChapterTags(workDir string, order uint, tags []string) error
 }
 
 // comicAgentImpl is the concrete implementation of the ComicAgent interface.
@@ -110,13 +112,18 @@ func (c *comicAgentImpl) EnsureProject(comicInfo comic.WorkComic) error {
 					pageNames = append(pageNames, p.FileName)
 				}
 
+				tags := ch.Tags
+				if len(tags) == 0 {
+					tags = defaultTagPreset[:]
+				}
+
 				dbChapter := comicdb.Chapter{
 					Title:     ch.Title,
 					Order:     ch.Order,
 					DirName:   ch.DirName,
 					PageCount: ch.PageCount,
 					Pages:     pageNames,
-					Tags:      ch.Tags,
+					Tags:      tags,
 				}
 				if err := tx.Create(&dbChapter).Error; err != nil {
 					return err
@@ -195,7 +202,7 @@ func (c *comicAgentImpl) AddChapter(workDir string, order uint, title string) er
 		Order:   order,
 		DirName: title,
 		Pages:   []string{},
-		Tags:    []string{},
+		Tags:    defaultTagPreset[:],
 	}
 	return db.Create(&chapter).Error
 }
@@ -400,6 +407,69 @@ func (c *comicAgentImpl) GetChapterPageMetas(workDir string, order uint) ([]comi
 	}
 
 	return result, nil
+}
+
+func (c *comicAgentImpl) GetChapterTags(workDir string, order uint) ([]string, error) {
+	db, err := c.getDB(workDir)
+	if err != nil {
+		return nil, err
+	}
+	sqlDB, err := db.DB()
+	if err == nil {
+		defer sqlDB.Close()
+	}
+
+	var ch comicdb.Chapter
+	if err := db.Where("`order` = ?", order).First(&ch).Error; err != nil {
+		return nil, err
+	}
+
+	if len(ch.Tags) == 0 {
+		defaultTags := defaultTagPreset[:]
+		ch.Tags = defaultTags
+		if err := db.Save(&ch).Error; err != nil {
+			return nil, err
+		}
+		return defaultTags, nil
+	}
+
+	return ch.Tags, nil
+}
+
+func (c *comicAgentImpl) SetChapterTags(workDir string, order uint, tags []string) error {
+	cleaned := make([]string, 0, len(tags))
+	seen := make(map[string]bool)
+	for _, tag := range tags {
+		trimmed := strings.TrimSpace(tag)
+		if trimmed == "" {
+			continue
+		}
+		if !seen[trimmed] {
+			seen[trimmed] = true
+			cleaned = append(cleaned, trimmed)
+		}
+	}
+
+	if len(cleaned) == 0 {
+		return fmt.Errorf("tags cannot be empty, at least one non-empty unique tag is required")
+	}
+
+	db, err := c.getDB(workDir)
+	if err != nil {
+		return err
+	}
+	sqlDB, err := db.DB()
+	if err == nil {
+		defer sqlDB.Close()
+	}
+
+	var ch comicdb.Chapter
+	if err := db.Where("`order` = ?", order).First(&ch).Error; err != nil {
+		return err
+	}
+
+	ch.Tags = cleaned
+	return db.Save(&ch).Error
 }
 
 // NewComicAgent creates and returns a new instance of ComicAgent.
