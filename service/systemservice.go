@@ -89,8 +89,7 @@ func (s *SystemService) GetChapterPages(chapterName string) ([]string, error) {
 		if strings.HasPrefix(name, ".") {
 			continue
 		}
-		ext := strings.ToLower(filepath.Ext(name))
-		if ext == ".jpg" || ext == ".jpeg" || ext == ".png" {
+		if config.IsValidImageExtension(filepath.Ext(name)) {
 			pages = append(pages, name)
 		}
 	}
@@ -151,6 +150,37 @@ func (s *SystemService) ListCandidateChapters(dir string, isComic bool) ([]strin
 				base := strings.TrimSuffix(name, ".txt")
 				files = append(files, base)
 			}
+		}
+	}
+	return files, nil
+}
+
+// ListCandidatePages lists candidate image pages in the specified directory.
+func (s *SystemService) ListCandidatePages(dir string) ([]string, error) {
+	info, err := os.Stat(dir)
+	if err != nil {
+		return nil, err
+	}
+	if !info.IsDir() {
+		return nil, fmt.Errorf("%s is not a directory", dir)
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	files := make([]string, 0)
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if strings.HasPrefix(name, ".") {
+			continue
+		}
+		if config.IsValidImageExtension(filepath.Ext(name)) {
+			files = append(files, name)
 		}
 	}
 	return files, nil

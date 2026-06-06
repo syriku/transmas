@@ -5,6 +5,8 @@ import (
 	"path"
 	"strings"
 	"sync"
+
+	"github.com/syriku/transmas/config"
 )
 
 // MasterRouter is a custom asset router that handles serving local manga files
@@ -45,9 +47,8 @@ func (r *MasterRouter) GetWorkspace() string {
 // ServeHTTP implements http.Handler, routing local manga requests and falling back to default assets.
 func (r *MasterRouter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if req.URL.Path == "/local-manga" || strings.HasPrefix(req.URL.Path, "/local-manga/") {
-		// Only allow serving .jpg, .jpeg, and .png files
-		ext := strings.ToLower(path.Ext(req.URL.Path))
-		if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
+		// Only allow serving valid image files
+		if !config.IsValidImageExtension(path.Ext(req.URL.Path)) {
 			http.Error(w, "Forbidden", http.StatusForbidden)
 			return
 		}

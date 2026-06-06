@@ -70,6 +70,15 @@ export function ListCandidateChapters(dir: string, isComic: boolean): $Cancellab
     });
 }
 
+/**
+ * ListCandidatePages lists candidate image pages in the specified directory.
+ */
+export function ListCandidatePages(dir: string): $CancellablePromise<string[]> {
+    return $Call.ByID(346912636, dir).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
 export function LoadWebNovel(url: string): $CancellablePromise<loader$0.Novel | null> {
     return $Call.ByID(1044756891, url).then(($result: any) => {
         return $$createType3($result);

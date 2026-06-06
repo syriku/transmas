@@ -158,3 +158,55 @@ func TestSystemService_Workspace(t *testing.T) {
 		t.Error("expected error setting workspace to non-existent directory")
 	}
 }
+
+func TestSystemService_ListCandidatePages(t *testing.T) {
+	// Create temporary directory
+	tmpDir, err := os.MkdirTemp("", "transmas_pages_test")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create test files:
+	// - page1.png (valid)
+	// - page2.JPG (valid)
+	// - page3.jpeg (valid)
+	// - doc.txt (invalid)
+	// - Subdir (dir, invalid)
+	// - .hidden.png (hidden, invalid)
+	err = os.WriteFile(filepath.Join(tmpDir, "page1.png"), []byte("png"), 0644)
+	if err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+	err = os.WriteFile(filepath.Join(tmpDir, "page2.JPG"), []byte("jpg"), 0644)
+	if err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+	err = os.WriteFile(filepath.Join(tmpDir, "page3.jpeg"), []byte("jpeg"), 0644)
+	if err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+	err = os.WriteFile(filepath.Join(tmpDir, "doc.txt"), []byte("text"), 0644)
+	if err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+	err = os.WriteFile(filepath.Join(tmpDir, ".hidden.png"), []byte("hidden"), 0644)
+	if err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+	err = os.Mkdir(filepath.Join(tmpDir, "Subdir"), 0755)
+	if err != nil {
+		t.Fatalf("failed to create dir: %v", err)
+	}
+
+	ss := NewSystemService()
+	pages, err := ss.ListCandidatePages(tmpDir)
+	if err != nil {
+		t.Fatalf("failed to list candidate pages: %v", err)
+	}
+
+	expected := []string{"page1.png", "page2.JPG", "page3.jpeg"}
+	if !reflect.DeepEqual(pages, expected) {
+		t.Errorf("expected candidate pages %v, got %v", expected, pages)
+	}
+}
