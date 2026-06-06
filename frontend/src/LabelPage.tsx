@@ -238,6 +238,13 @@ const PageSetupModal: React.FC<PageSetupModalProps> = ({
                     fontSize: '12px',
                     cursor: leftPages.length === 0 ? 'not-allowed' : 'pointer',
                     opacity: leftPages.length === 0 ? 0.6 : 1,
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    lineHeight: '1',
+                    width: 'auto',
                   }}
                 >
                   {t('selectAll', '全选')}
@@ -286,6 +293,9 @@ const PageSetupModal: React.FC<PageSetupModalProps> = ({
                       textOverflow: 'ellipsis',
                       overflow: 'hidden',
                       transition: 'all 0.15s ease',
+                      flexShrink: 0,
+                      minHeight: '36px',
+                      boxSizing: 'border-box',
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.borderColor = '#3b82f6'
@@ -350,6 +360,13 @@ const PageSetupModal: React.FC<PageSetupModalProps> = ({
                     fontSize: '12px',
                     cursor: rightPages.length === 0 ? 'not-allowed' : 'pointer',
                     opacity: rightPages.length === 0 ? 0.6 : 1,
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    lineHeight: '1',
+                    width: 'auto',
                   }}
                 >
                   {t('clearAll', '清除')}
@@ -379,6 +396,9 @@ const PageSetupModal: React.FC<PageSetupModalProps> = ({
                       fontSize: '13px',
                       color: '#334155',
                       gap: '8px',
+                      flexShrink: 0,
+                      minHeight: '36px',
+                      boxSizing: 'border-box',
                     }}
                   >
                     <span
@@ -469,6 +489,13 @@ const PageSetupModal: React.FC<PageSetupModalProps> = ({
               color: '#475569',
               fontSize: '14px',
               fontWeight: '500',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              lineHeight: '1',
+              width: 'auto',
             }}
           >
             {t('cancel', '取消')}
@@ -487,6 +514,13 @@ const PageSetupModal: React.FC<PageSetupModalProps> = ({
               fontSize: '14px',
               fontWeight: '600',
               opacity: saving || loading ? 0.6 : 1,
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              lineHeight: '1',
+              width: 'auto',
             }}
           >
             {saving ? t('saving', '保存中...') : t('save', '保存')}
@@ -780,6 +814,7 @@ const LabelPage: React.FC = () => {
               boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
               margin: 0,
               lineHeight: '1',
+              flexShrink: 0,
             }}
             onMouseOver={(e) => {
               e.currentTarget.style.backgroundColor = '#f5f5f5'
@@ -790,7 +825,23 @@ const LabelPage: React.FC = () => {
               e.currentTarget.style.borderColor = '#ddd'
             }}
           >
-            ⚙️ {t('pageSetup', '页面设置')}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M18 22H4a2 2 0 0 1-2-2V6" />
+              <path d="M22 18H8a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2z" />
+              <circle cx="12" cy="6" r="1.5" />
+              <path d="m18 12-3.2-3.2a2 2 0 0 0-2.8 0L8 13" />
+            </svg>
+            {t('pageSetup', '页面设置')}
           </button>
 
           <button
@@ -880,6 +931,9 @@ const LabelPage: React.FC = () => {
             boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
             margin: 0,
             outline: 'none',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            width: 'auto',
           }}
         >
           &larr; {t('prevPage', '上一页')}
@@ -933,6 +987,9 @@ const LabelPage: React.FC = () => {
             boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
             margin: 0,
             outline: 'none',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            width: 'auto',
           }}
         >
           {t('nextPage', '下一页')} &rarr;
