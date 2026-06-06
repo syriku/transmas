@@ -20,7 +20,6 @@ export class PageMeta {
     "CreatedAt": time$0.Time;
     "UpdatedAt": time$0.Time;
     "DeletedAt": gorm$0.DeletedAt;
-    "ComicID": number;
     "ChapterID": number;
     "filename": string;
     "format": comic$0.ImageFormat;
@@ -39,9 +38,6 @@ export class PageMeta {
         }
         if (!("DeletedAt" in $$source)) {
             this["DeletedAt"] = null;
-        }
-        if (!("ComicID" in $$source)) {
-            this["ComicID"] = 0;
         }
         if (!("ChapterID" in $$source)) {
             this["ChapterID"] = 0;

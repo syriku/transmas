@@ -111,7 +111,6 @@ func (c *comicAgentImpl) EnsureProject(comicInfo comic.WorkComic) error {
 				}
 
 				dbChapter := comicdb.Chapter{
-					ComicID:   dbComic.ID,
 					Title:     ch.Title,
 					Order:     ch.Order,
 					DirName:   ch.DirName,
@@ -125,7 +124,6 @@ func (c *comicAgentImpl) EnsureProject(comicInfo comic.WorkComic) error {
 
 				for _, p := range ch.Pages {
 					dbPageMeta := comicdb.PageMeta{
-						ComicID:   dbComic.ID,
 						ChapterID: dbChapter.ID,
 						FileName:  p.FileName,
 						Format:    p.Format,
@@ -193,7 +191,6 @@ func (c *comicAgentImpl) AddChapter(workDir string, order uint, title string) er
 	}
 
 	chapter := comicdb.Chapter{
-		ComicID: com.ID,
 		Title:   title,
 		Order:   order,
 		DirName: title,
@@ -316,7 +313,7 @@ func (c *comicAgentImpl) UpdateChapterPages(workDir string, order uint, pages []
 		for _, filename := range pages {
 			var count int64
 			err := tx.Model(&comicdb.PageMeta{}).
-				Where("comic_id = ? AND chapter_id = ? AND file_name = ?", com.ID, ch.ID, filename).
+				Where("chapter_id = ? AND file_name = ?", ch.ID, filename).
 				Count(&count).Error
 			if err != nil {
 				return err
@@ -338,7 +335,6 @@ func (c *comicAgentImpl) UpdateChapterPages(workDir string, order uint, pages []
 				}
 
 				dbPageMeta := comicdb.PageMeta{
-					ComicID:   com.ID,
 					ChapterID: ch.ID,
 					FileName:  filename,
 					Format:    format,
@@ -395,7 +391,6 @@ func (c *comicAgentImpl) GetChapterPageMetas(workDir string, order uint) ([]comi
 				format = comic.PNG
 			}
 			result = append(result, comicdb.PageMeta{
-				ComicID:   ch.ComicID,
 				ChapterID: ch.ID,
 				FileName:  filename,
 				Format:    format,
