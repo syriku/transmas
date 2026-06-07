@@ -35,6 +35,9 @@ export const LabelCard: React.FC<LabelCardProps> = ({
   const [editText, setEditText] = useState(tag.text || '')
   const [saving, setSaving] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [showTooltip, setShowTooltip] = useState(false)
+  const textRef = useRef<HTMLSpanElement>(null)
+  const hoverTimeoutRef = useRef<any>(null)
 
   useEffect(() => {
     setEditText(tag.text || '')
@@ -47,6 +50,14 @@ export const LabelCard: React.FC<LabelCardProps> = ({
       textareaRef.current.setSelectionRange(len, len)
     }
   }, [isExpanded])
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const handleSave = async (e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
@@ -85,6 +96,26 @@ export const LabelCard: React.FC<LabelCardProps> = ({
       setEditText(tag.text || '')
       onExpand()
     }
+  }
+
+  const handleMouseEnterText = () => {
+    if (!isExpanded && textRef.current) {
+      const hasOverflow = textRef.current.scrollWidth > textRef.current.clientWidth
+      if (hasOverflow && tag.text) {
+        if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+        hoverTimeoutRef.current = setTimeout(() => {
+          setShowTooltip(true)
+        }, 300) // 0.3s delay
+      }
+    }
+  }
+
+  const handleMouseLeaveText = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current)
+      hoverTimeoutRef.current = null
+    }
+    setShowTooltip(false)
   }
 
   const badgeColor = RAINBOW_COLORS[tag.tagIndex % RAINBOW_COLORS.length]
@@ -126,15 +157,76 @@ export const LabelCard: React.FC<LabelCardProps> = ({
         }
       }}
     >
+      {showTooltip && tag.text && (
+        <div
+          style={{
+            position: 'absolute',
+            ...(index === 0
+              ? {
+                  top: '100%',
+                  bottom: 'auto',
+                  transform: 'translateX(-50%) translateY(6px)',
+                }
+              : {
+                  bottom: '100%',
+                  top: 'auto',
+                  transform: 'translateX(-50%) translateY(-6px)',
+                }),
+            left: '50%',
+            backgroundColor: '#1e293b',
+            color: '#ffffff',
+            padding: '6px 12px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: '500',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            whiteSpace: 'normal',
+            wordBreak: 'break-all',
+            maxWidth: '220px',
+            zIndex: 100,
+            pointerEvents: 'none',
+            lineHeight: '1.4',
+            textAlign: 'left',
+          }}
+        >
+          {tag.text}
+          <div
+            style={{
+              position: 'absolute',
+              ...(index === 0
+                ? {
+                    bottom: '100%',
+                    top: 'auto',
+                    borderTop: 'none',
+                    borderBottom: '5px solid #1e293b',
+                  }
+                : {
+                    top: '100%',
+                    bottom: 'auto',
+                    borderBottom: 'none',
+                    borderTop: '5px solid #1e293b',
+                  }),
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '0',
+              height: '0',
+              borderLeft: '5px solid transparent',
+              borderRight: '5px solid transparent',
+            }}
+          />
+        </div>
+      )}
+
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           width: '100%',
+          gap: '12px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
           <div
             style={{
               width: '20px',
@@ -164,15 +256,39 @@ export const LabelCard: React.FC<LabelCardProps> = ({
               padding: '2px 8px',
               borderRadius: '6px',
               border: '1px solid #e2e8f0',
-              textOverflow: 'ellipsis',
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
-              maxWidth: '100px',
+              flexShrink: 0,
             }}
             title={tagName}
           >
             {tagName}
           </span>
+
+          {!isExpanded && (
+            <span
+              ref={textRef}
+              onMouseEnter={handleMouseEnterText}
+              onMouseLeave={handleMouseLeaveText}
+              style={{
+                fontSize: '13px',
+                color: textColor,
+                fontWeight: textWeight,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                marginLeft: '4px',
+                flex: 1,
+                minWidth: 0,
+              }}
+            >
+              {tag.text ? (
+                tag.text
+              ) : (
+                <span style={{ color: '#cbd5e1', fontStyle: 'italic' }}>
+                  {t('untranslated', '(未翻译)')}
+                </span>
+              )}
+            </span>
+          )}
         </div>
 
         <button
@@ -190,6 +306,7 @@ export const LabelCard: React.FC<LabelCardProps> = ({
             transition: 'all 0.15s',
             color: tag.reviewed ? '#10b981' : '#94a3b8',
             backgroundColor: tag.reviewed ? '#ecfdf5' : 'transparent',
+            flexShrink: 0,
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = tag.reviewed ? '#d1fae5' : '#f1f5f9'
@@ -213,30 +330,6 @@ export const LabelCard: React.FC<LabelCardProps> = ({
           </svg>
         </button>
       </div>
-
-      {!isExpanded && (
-        <div
-          style={{
-            fontSize: '13px',
-            color: textColor,
-            fontWeight: textWeight,
-            lineHeight: '1.4',
-            marginTop: '6px',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            width: '100%',
-          }}
-        >
-          {tag.text ? (
-            tag.text
-          ) : (
-            <span style={{ color: '#cbd5e1', fontStyle: 'italic' }}>
-              {t('untranslated', '(未翻译)')}
-            </span>
-          )}
-        </div>
-      )}
 
       {isExpanded && (
         <div
@@ -277,7 +370,11 @@ export const LabelCard: React.FC<LabelCardProps> = ({
             <button
               onClick={handleCancel}
               style={{
-                padding: '4px 10px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '28px',
+                padding: '0 12px',
                 fontSize: '12px',
                 fontWeight: '500',
                 color: '#64748b',
@@ -300,7 +397,11 @@ export const LabelCard: React.FC<LabelCardProps> = ({
               onClick={handleSave}
               disabled={saving}
               style={{
-                padding: '4px 12px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '28px',
+                padding: '0 12px',
                 fontSize: '12px',
                 fontWeight: '600',
                 color: '#ffffff',
