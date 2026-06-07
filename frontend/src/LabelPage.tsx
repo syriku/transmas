@@ -18,6 +18,7 @@ import { PageMeta } from '../bindings/github.com/syriku/transmas/agents/comicage
 import LabelSettingsModal from './widgets/LabelSettingsModal'
 import Toast from './widgets/Toast'
 import ImagePreviewer, { ImagePreviewerRef, TagInstance } from './widgets/ImagePreviewer'
+import LabelCard from './widgets/LabelCard'
 
 // PageSetupModal Component
 interface PageSetupModalProps {
@@ -558,10 +559,29 @@ const LabelPage: React.FC = () => {
   const [activeTagIndex, setActiveTagIndex] = useState(0)
 
   const [pageTagInstances, setPageTagInstances] = useState<Record<string, TagInstance[]>>({})
+  const [expandedLabelId, setExpandedLabelId] = useState<string | null>(null)
 
   const previewerRef = useRef<ImagePreviewerRef>(null)
 
   const currentFilename = pageMetas[currentPageIndex]?.filename
+
+  // Reset expanded card state when current page changes
+  useEffect(() => {
+    setExpandedLabelId(null)
+  }, [currentPageIndex])
+
+  // Scroll expanded label card into view
+  useEffect(() => {
+    if (expandedLabelId) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`label-card-${expandedLabelId}`)
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        }
+      }, 50)
+      return () => clearTimeout(timer)
+    }
+  }, [expandedLabelId])
 
   const saveLabelsToBackend = async (filename: string, instances: TagInstance[]) => {
     if (!projectName || chapterOrder === null) return
@@ -581,8 +601,10 @@ const LabelPage: React.FC = () => {
 
   const handleAddTag = async (x: number, y: number) => {
     if (!currentFilename || !projectName || chapterOrder === null) return
+    const currentList = pageTagInstances[currentFilename] || []
+    const newTagId = `${currentFilename}-${currentList.length}`
     const newTag: TagInstance = {
-      id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      id: newTagId,
       tagIndex: activeTagIndex,
       x,
       y,
@@ -590,13 +612,15 @@ const LabelPage: React.FC = () => {
       translated: false,
       reviewed: false,
     }
-    const updated = [...(pageTagInstances[currentFilename] || []), newTag]
+    const updated = [...currentList, newTag]
     setPageTagInstances((prev) => ({
       ...prev,
       [currentFilename]: updated,
     }))
     try {
       await saveLabelsToBackend(currentFilename, updated)
+      setExpandedLabelId(newTagId)
+      await fetchPageMetas(true, true)
     } catch (err: any) {
       console.error(err)
       setToast({ message: t('failedToSave', '保存失败: ') + err.message, type: 'error' })
@@ -627,8 +651,12 @@ const LabelPage: React.FC = () => {
       ...prev,
       [currentFilename]: updated,
     }))
+    if (expandedLabelId === id) {
+      setExpandedLabelId(null)
+    }
     try {
       await saveLabelsToBackend(currentFilename, updated)
+      await fetchPageMetas(true, true)
     } catch (err: any) {
       console.error(err)
       setToast({ message: t('failedToSave', '保存失败: ') + err.message, type: 'error' })
@@ -637,6 +665,7 @@ const LabelPage: React.FC = () => {
 
   const handleTagClick = (tag: TagInstance) => {
     console.log('Clicked tag:', tag)
+    setExpandedLabelId(tag.id)
   }
 
   const handleTagHover = (tag: TagInstance) => {
@@ -670,9 +699,9 @@ const LabelPage: React.FC = () => {
     }
   }, [currentProject])
 
-  const fetchPageMetas = async () => {
+  const fetchPageMetas = async (keepPageIndex = false, silent = false) => {
     if (!projectName || chapterOrder === null) return
-    setLoading(true)
+    if (!silent) setLoading(true)
     try {
       const fetchedTags = await GetChapterTags(projectName, chapterOrder)
       const currentTags = fetchedTags || []
@@ -691,7 +720,7 @@ const LabelPage: React.FC = () => {
               tagIndex = 0
             }
             return {
-              id: `${meta.filename}-${idx}-${Date.now()}`,
+              id: `${meta.filename}-${idx}`,
               tagIndex,
               x: l.pos ? l.pos[0] : 0,
               y: l.pos ? l.pos[1] : 0,
@@ -703,7 +732,9 @@ const LabelPage: React.FC = () => {
         }
       })
       setPageTagInstances(tagInstancesMap)
-      setCurrentPageIndex(0)
+      if (!keepPageIndex) {
+        setCurrentPageIndex(0)
+      }
     } catch (err: any) {
       console.error('Failed to get chapter page metas:', err)
       setToast({
@@ -711,7 +742,7 @@ const LabelPage: React.FC = () => {
         type: 'error',
       })
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
@@ -731,6 +762,33 @@ const LabelPage: React.FC = () => {
       return translated.slice(0, maxLen) + '...'
     }
     return translated
+  }
+
+  const handleUpdateLabel = async (tagId: string, updatedFields: Partial<TagInstance>) => {
+    if (!currentFilename) return
+    const updated = (pageTagInstances[currentFilename] || []).map((tag) => {
+      if (tag.id === tagId) {
+        const nextTag = { ...tag, ...updatedFields }
+        if (updatedFields.text !== undefined) {
+          nextTag.translated = updatedFields.text.trim().length > 0
+        }
+        return nextTag
+      }
+      return tag
+    })
+
+    setPageTagInstances((prev) => ({
+      ...prev,
+      [currentFilename]: updated,
+    }))
+
+    try {
+      await saveLabelsToBackend(currentFilename, updated)
+      await fetchPageMetas(true, true)
+    } catch (err: any) {
+      console.error(err)
+      setToast({ message: t('failedToSave', '保存失败: ') + err.message, type: 'error' })
+    }
   }
 
   const handleSaveTags = (updatedTags: string[]) => {
@@ -755,7 +813,6 @@ const LabelPage: React.FC = () => {
   // Keyboard Navigation & Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore keyboard events if a modal or input is active
       if (isGlossaryModalOpen || isSetupModalOpen) return
       if (
         document.activeElement?.tagName === 'INPUT' ||
@@ -765,7 +822,6 @@ const LabelPage: React.FC = () => {
 
       const key = e.key.toLowerCase()
 
-      // Handle hotkeys '1' to '7' (both row keys and numpad)
       if (/^[1-7]$/.test(e.key)) {
         const index = parseInt(e.key) - 1
         if (index >= 0 && index < tags.length) {
@@ -1401,7 +1457,7 @@ const LabelPage: React.FC = () => {
           />
         </div>
 
-        {/* Right Column: Empty Editor-Style Box */}
+        {/* Right Column: Labels List Panel */}
         <div
           style={{
             flex: 1,
@@ -1418,10 +1474,103 @@ const LabelPage: React.FC = () => {
               flex: 1,
               background: 'white',
               boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-              borderRadius: '8px',
-              border: '1px solid #e0e0e0',
+              borderRadius: '12px',
+              border: '1px solid #cbd5e1',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              height: '100%',
             }}
-          />
+          >
+            {/* Panel Header */}
+            <div
+              style={{
+                padding: '16px 20px',
+                borderBottom: '1px solid #e2e8f0',
+                backgroundColor: '#f8fafc',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1e293b' }}>
+                {t('labelsList', '标注列表')}
+              </h3>
+              <span
+                style={{
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  color: '#475569',
+                  backgroundColor: '#e2e8f0',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                }}
+              >
+                {currentFilename ? (pageTagInstances[currentFilename] || []).length : 0}
+              </span>
+            </div>
+
+            {/* List Body */}
+            <div
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                backgroundColor: '#f8fafc',
+              }}
+            >
+              {!currentFilename || (pageTagInstances[currentFilename] || []).length === 0 ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    color: '#94a3b8',
+                    gap: '8px',
+                  }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="40"
+                    height="40"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                  </svg>
+                  <span style={{ fontSize: '13px' }}>
+                    {t('noLabelsOnPage', '当前页面暂无标注，点击图片可新增标注')}
+                  </span>
+                </div>
+              ) : (
+                (pageTagInstances[currentFilename] || []).map((tag, idx) => {
+                  const isExpanded = expandedLabelId === tag.id
+                  return (
+                    <LabelCard
+                      key={tag.id}
+                      tag={tag}
+                      index={idx}
+                      isExpanded={isExpanded}
+                      onExpand={() => setExpandedLabelId(isExpanded ? null : tag.id)}
+                      onUpdate={(fields) => handleUpdateLabel(tag.id, fields)}
+                      tags={tags}
+                      translateTag={translateTag}
+                    />
+                  )
+                })
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
