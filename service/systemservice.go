@@ -27,6 +27,8 @@ func NewSystemService() *SystemService {
 }
 
 // GetAssetHandler initializes the master router with the fallback handler and returns it.
+//
+//wails:ignore
 func (s *SystemService) GetAssetHandler(fallback http.Handler) http.Handler {
 	s.handlerImpl = fallback
 	s.router = server.NewMasterRouter(fallback)

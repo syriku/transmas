@@ -14,19 +14,9 @@ import * as request$0 from "../../aisdk/request/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as loader$0 from "../../kakuyomu-loader/models.js";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore: Unused imports
-import * as http$0 from "../../../../net/http/models.js";
 
 export function DeleteUserData(): $CancellablePromise<void> {
     return $Call.ByID(1648938747);
-}
-
-/**
- * GetAssetHandler initializes the master router with the fallback handler and returns it.
- */
-export function GetAssetHandler(fallback: http$0.Handler): $CancellablePromise<http$0.Handler> {
-    return $Call.ByID(900726805, fallback);
 }
 
 /**
