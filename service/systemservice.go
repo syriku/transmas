@@ -106,8 +106,7 @@ func (s *SystemService) DeleteUserData() error {
 		return fmt.Errorf("cannot delete user data while a user is logged in")
 	}
 
-	cfg := config.GetGlobalConfig()
-	dbPath := filepath.Join(cfg.AppPath, "prototype", "manga", "savedata.db")
+	dbPath := config.GetDBPath()
 
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
 		return nil

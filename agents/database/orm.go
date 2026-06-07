@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"path"
 
 	"github.com/syriku/aisdk/request"
 	"github.com/syriku/transmas/config"
@@ -14,13 +13,12 @@ import (
 
 func ConnectDB() (*gorm.DB, error) {
 	cfg := config.GetGlobalConfig()
-	dbPath := path.Join(cfg.AppPath, "prototype", "manga", "savedata.db")
-	err := os.MkdirAll(path.Dir(dbPath), 0755)
+	err := os.MkdirAll(cfg.AppPath, 0o755)
 	if err != nil {
 		return nil, err
 	}
 
-	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(config.GetDBPath()), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}

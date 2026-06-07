@@ -25,3 +25,15 @@ func GetGlobalConfig() GlobalConfig {
 		AppPath: appPath,
 	}
 }
+
+var dbPath string
+
+func init() {
+	cfg := GetGlobalConfig()
+	dbPath = filepath.Join(cfg.AppPath, "savedata.db")
+}
+
+// GetDBPath returns the path to the application database file.
+func GetDBPath() string {
+	return dbPath
+}
