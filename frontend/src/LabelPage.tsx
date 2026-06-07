@@ -991,9 +991,9 @@ const LabelPage: React.FC = () => {
             <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#666' }}>
               {projectName}{' '}
               {currentChapter
-                ? `/ Chapter ${currentChapter.Order}: ${currentChapter.Title}`
+                ? `/ ${currentChapter.Title}`
                 : chapterOrder
-                  ? `/ Chapter ${chapterOrder}`
+                  ? `/ ${chapterOrder}`
                   : ''}
             </h2>
           )}
