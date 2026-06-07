@@ -16,28 +16,12 @@ import * as gorm$0 from "../../../../../gorm.io/gorm/models.js";
 import * as time$0 from "../../../../../time/models.js";
 
 export class Chapter {
-    "ID": number;
-    "CreatedAt": time$0.Time;
-    "UpdatedAt": time$0.Time;
-    "DeletedAt": gorm$0.DeletedAt;
     "Order": number;
     "Title": string;
     "Project": number;
 
     /** Creates a new Chapter instance. */
     constructor($$source: Partial<Chapter> = {}) {
-        if (!("ID" in $$source)) {
-            this["ID"] = 0;
-        }
-        if (!("CreatedAt" in $$source)) {
-            this["CreatedAt"] = null;
-        }
-        if (!("UpdatedAt" in $$source)) {
-            this["UpdatedAt"] = null;
-        }
-        if (!("DeletedAt" in $$source)) {
-            this["DeletedAt"] = null;
-        }
         if (!("Order" in $$source)) {
             this["Order"] = 0;
         }

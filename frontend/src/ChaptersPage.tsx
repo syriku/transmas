@@ -509,7 +509,7 @@ const ChaptersPage: React.FC = () => {
               .sort((a, b) => a.Order - b.Order)
               .map((chapter) => (
                 <ItemCard
-                  key={chapter.ID}
+                  key={chapter.Order}
                   title={t('chapterN', { n: chapter.Order })}
                   hoverTitle={`${chapter.Order}. ${chapter.Title}`}
                   onClick={() => handleChapterClick(chapter)}

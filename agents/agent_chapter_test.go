@@ -44,7 +44,7 @@ func TestTranslateAgentImpl_ReadChapterAndPageTurning(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open memory db: %v", err)
 	}
-	err = db.AutoMigrate(&database.UserData{}, &database.ProjectInfo{}, &database.Chapter{})
+	err = db.AutoMigrate(&database.UserData{}, &database.ProjectInfo{})
 	if err != nil {
 		t.Fatalf("failed to migrate db: %v", err)
 	}
@@ -171,7 +171,7 @@ func TestTranslateAgentImpl_SaveChapter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open memory db: %v", err)
 	}
-	err = db.AutoMigrate(&database.UserData{}, &database.ProjectInfo{}, &database.Chapter{})
+	err = db.AutoMigrate(&database.UserData{}, &database.ProjectInfo{})
 	if err != nil {
 		t.Fatalf("failed to migrate db: %v", err)
 	}
@@ -331,7 +331,7 @@ func TestTranslateAgentImpl_HandlesAndTranslation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open memory db: %v", err)
 	}
-	err = db.AutoMigrate(&database.UserData{}, &database.ProjectInfo{}, &database.Chapter{})
+	err = db.AutoMigrate(&database.UserData{}, &database.ProjectInfo{})
 	if err != nil {
 		t.Fatalf("failed to migrate db: %v", err)
 	}
@@ -515,7 +515,7 @@ func TestTranslateAgentImpl_ReviewedContextLogic(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open memory db: %v", err)
 	}
-	err = db.AutoMigrate(&database.UserData{}, &database.ProjectInfo{}, &database.Chapter{})
+	err = db.AutoMigrate(&database.UserData{}, &database.ProjectInfo{})
 	if err != nil {
 		t.Fatalf("failed to migrate db: %v", err)
 	}
@@ -621,7 +621,7 @@ func TestTranslateAgentImpl_GetChapterStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open memory db: %v", err)
 	}
-	err = db.AutoMigrate(&database.UserData{}, &database.ProjectInfo{}, &database.Chapter{})
+	err = db.AutoMigrate(&database.UserData{}, &database.ProjectInfo{})
 	if err != nil {
 		t.Fatalf("failed to migrate db: %v", err)
 	}
@@ -729,7 +729,7 @@ func TestTranslateAgentImpl_DeleteProjectAndChapter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open memory db: %v", err)
 	}
-	err = db.AutoMigrate(&database.UserData{}, &database.ProjectInfo{}, &database.Chapter{})
+	err = db.AutoMigrate(&database.UserData{}, &database.ProjectInfo{})
 	if err != nil {
 		t.Fatalf("failed to migrate db: %v", err)
 	}
@@ -850,7 +850,7 @@ func TestTranslateAgentImpl_ComicProject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open memory db: %v", err)
 	}
-	err = db.AutoMigrate(&database.UserData{}, &database.ProjectInfo{}, &database.Chapter{})
+	err = db.AutoMigrate(&database.UserData{}, &database.ProjectInfo{})
 	if err != nil {
 		t.Fatalf("failed to migrate db: %v", err)
 	}
