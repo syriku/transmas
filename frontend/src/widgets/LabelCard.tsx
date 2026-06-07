@@ -88,7 +88,7 @@ export const LabelCard: React.FC<LabelCardProps> = ({
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.isComposing) return
+    if (e.nativeEvent.isComposing) return
 
     if (e.key === 'Enter') {
       if (!e.shiftKey) {
