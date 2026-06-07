@@ -133,6 +133,9 @@ func TestEnsureProject(t *testing.T) {
 		if l.Page != "page1.jpg" {
 			t.Errorf("expected label page 'page1.jpg', got '%s'", l.Page)
 		}
+		if !l.Translated {
+			t.Errorf("expected label translated to be true, got false")
+		}
 	}
 
 	// Verify PageMeta database records
@@ -522,10 +525,72 @@ Label 2 Imported
 			if len(pm.Labels) != 1 || pm.Labels[0].Text != "Label 1 Imported" || pm.Labels[0].Tag != 1 {
 				t.Errorf("page1 labels not imported correctly: %+v", pm.Labels)
 			}
+			if !pm.Labels[0].Translated {
+				t.Errorf("expected page1 label to be translated, got false")
+			}
 		} else if pm.FileName == "page2.jpg" {
 			if len(pm.Labels) != 1 || pm.Labels[0].Text != "Label 2 Imported" || pm.Labels[0].Tag != 3 {
 				t.Errorf("page2 labels not imported correctly: %+v", pm.Labels)
 			}
+			if !pm.Labels[0].Translated {
+				t.Errorf("expected page2 label to be translated, got false")
+			}
+		}
+	}
+}
+
+func TestHardDeleteChapter(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "transmas-comicagent-harddelete-test")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	workComic := comic.WorkComic{
+		Comic: comic.Comic{
+			Title:    "Test Hard Delete Comic",
+			Chapters: 1,
+		},
+		WorkDir: tempDir,
+		Chapters: []comic.WorkChapter{
+			{
+				Chapter: comic.Chapter{
+					Title:     "Chapter 1",
+					Order:     1,
+					PageCount: 0,
+				},
+				DirName: "chap1",
+				Pages:   []comic.PageMeta{},
+			},
+		},
+	}
+
+	agent := NewComicAgent()
+	if err := agent.EnsureProject(workComic); err != nil {
+		t.Fatalf("EnsureProject failed: %v", err)
+	}
+
+	// Delete chapter 1
+	if err := agent.DeleteChapter(tempDir, 1); err != nil {
+		t.Fatalf("DeleteChapter failed: %v", err)
+	}
+
+	// Re-add chapter 1 (same order and title)
+	if err := agent.AddChapter(tempDir, 1, "Chapter 1"); err != nil {
+		t.Fatalf("AddChapter with same order/title failed after deletion: %v", err)
+	}
+
+	// Verify chapter 1 exists and only 1 chapter exists in total
+	chapters, err := agent.ListChapters(tempDir)
+	if err != nil {
+		t.Fatalf("ListChapters failed: %v", err)
+	}
+	if len(chapters) != 1 {
+		t.Errorf("expected exactly 1 chapter after delete and re-add, got %d", len(chapters))
+	} else {
+		ch := chapters[0]
+		if ch.Order != 1 || ch.Title != "Chapter 1" {
+			t.Errorf("expected chapter with Order 1 and Title 'Chapter 1', got Order %d Title '%s'", ch.Order, ch.Title)
 		}
 	}
 }

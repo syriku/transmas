@@ -72,6 +72,26 @@ func (c *comicAgentImpl) getDB(workDir string) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to auto migrate tables: %w", err)
 	}
 
+	// Clean up any existing soft-deleted records to resolve historical duplicates
+	if err := db.Unscoped().Where("deleted_at IS NOT NULL").Delete(&comicdb.Chapter{}).Error; err != nil {
+		if sqlDB, errClose := db.DB(); errClose == nil {
+			sqlDB.Close()
+		}
+		return nil, fmt.Errorf("failed to clean up soft-deleted chapters: %w", err)
+	}
+	if err := db.Unscoped().Where("deleted_at IS NOT NULL").Delete(&comicdb.PageMeta{}).Error; err != nil {
+		if sqlDB, errClose := db.DB(); errClose == nil {
+			sqlDB.Close()
+		}
+		return nil, fmt.Errorf("failed to clean up soft-deleted page metas: %w", err)
+	}
+	if err := db.Unscoped().Where("deleted_at IS NOT NULL").Delete(&comicdb.Comic{}).Error; err != nil {
+		if sqlDB, errClose := db.DB(); errClose == nil {
+			sqlDB.Close()
+		}
+		return nil, fmt.Errorf("failed to clean up soft-deleted comics: %w", err)
+	}
+
 	return db, nil
 }
 
@@ -140,6 +160,9 @@ func (c *comicAgentImpl) EnsureProject(comicInfo comic.WorkComic) error {
 					if l.Page != "" {
 						if l.Tag <= 0 || l.Tag > activeTagsCount {
 							l.Tag = 1
+						}
+						if strings.TrimSpace(l.Text) != "" {
+							l.Translated = true
 						}
 						labelsByPage[l.Page] = append(labelsByPage[l.Page], l)
 					}
@@ -240,10 +263,10 @@ func (c *comicAgentImpl) DeleteChapter(workDir string, order uint) error {
 	}
 
 	return db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("chapter_id = ?", ch.ID).Delete(&comicdb.PageMeta{}).Error; err != nil {
+		if err := tx.Unscoped().Where("chapter_id = ?", ch.ID).Delete(&comicdb.PageMeta{}).Error; err != nil {
 			return err
 		}
-		if err := tx.Delete(&ch).Error; err != nil {
+		if err := tx.Unscoped().Delete(&ch).Error; err != nil {
 			return err
 		}
 		return nil
@@ -713,6 +736,9 @@ func (c *comicAgentImpl) ImportLp(workDir string, order uint, filePath string) e
 		if l.Page != "" {
 			if l.Tag <= 0 || l.Tag > activeTagsCount {
 				l.Tag = 1
+			}
+			if strings.TrimSpace(l.Text) != "" {
+				l.Translated = true
 			}
 			labelsByPage[l.Page] = append(labelsByPage[l.Page], l)
 		}
