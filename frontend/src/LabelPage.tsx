@@ -791,6 +791,30 @@ const LabelPage: React.FC = () => {
     }
   }
 
+  const handleToggleAllReviewed = async () => {
+    if (!currentFilename) return
+    const currentList = pageTagInstances[currentFilename] || []
+    if (currentList.length === 0) return
+
+    const allReviewed = currentList.every((t) => t.reviewed)
+    const targetStatus = !allReviewed
+
+    const updated = currentList.map((t) => ({ ...t, reviewed: targetStatus }))
+
+    setPageTagInstances((prev) => ({
+      ...prev,
+      [currentFilename]: updated,
+    }))
+
+    try {
+      await saveLabelsToBackend(currentFilename, updated)
+      await fetchPageMetas(true, true)
+    } catch (err: any) {
+      console.error(err)
+      setToast({ message: t('failedToSave', '保存失败: ') + err.message, type: 'error' })
+    }
+  }
+
   const handleSaveTags = (updatedTags: string[]) => {
     setTags(updatedTags)
     if (activeTagIndex >= updatedTags.length) {
@@ -1496,18 +1520,75 @@ const LabelPage: React.FC = () => {
               <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#1e293b' }}>
                 {t('labelsList', '标注列表')}
               </h3>
-              <span
-                style={{
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: '#475569',
-                  backgroundColor: '#e2e8f0',
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                }}
-              >
-                {currentFilename ? (pageTagInstances[currentFilename] || []).length : 0}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {currentFilename && (pageTagInstances[currentFilename] || []).length > 0 && (
+                  <button
+                    onClick={handleToggleAllReviewed}
+                    title={
+                      (pageTagInstances[currentFilename] || []).every((t) => t.reviewed)
+                        ? t('unmarkAllReviewed', '全部取消校对')
+                        : t('markAllReviewed', '全部标记为已校对')
+                    }
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.15s',
+                      color: (pageTagInstances[currentFilename] || []).every((t) => t.reviewed)
+                        ? '#10b981'
+                        : '#94a3b8',
+                      backgroundColor: (pageTagInstances[currentFilename] || []).every(
+                        (t) => t.reviewed,
+                      )
+                        ? '#ecfdf5'
+                        : 'transparent',
+                    }}
+                    onMouseEnter={(e) => {
+                      const isAll = (pageTagInstances[currentFilename] || []).every(
+                        (t) => t.reviewed,
+                      )
+                      e.currentTarget.style.backgroundColor = isAll ? '#d1fae5' : '#f1f5f9'
+                    }}
+                    onMouseLeave={(e) => {
+                      const isAll = (pageTagInstances[currentFilename] || []).every(
+                        (t) => t.reviewed,
+                      )
+                      e.currentTarget.style.backgroundColor = isAll ? '#ecfdf5' : 'transparent'
+                    }}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </button>
+                )}
+                <span
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: '#475569',
+                    backgroundColor: '#e2e8f0',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                  }}
+                >
+                  {currentFilename ? (pageTagInstances[currentFilename] || []).length : 0}
+                </span>
+              </div>
             </div>
 
             {/* List Body */}
