@@ -29,25 +29,25 @@ type GlossaryEntry struct {
 }
 
 func ToDB(entries []request.GlossaryEntry) []GlossaryEntry {
-	var dbEntries []GlossaryEntry
-	for _, e := range entries {
-		dbEntries = append(dbEntries, GlossaryEntry{
+	dbEntries := make([]GlossaryEntry, len(entries))
+	for i, e := range entries {
+		dbEntries[i] = GlossaryEntry{
 			Source: e.Source,
 			Target: e.Target,
 			Note:   e.Note,
-		})
+		}
 	}
 	return dbEntries
 }
 
 func FromDB(dbEntries []GlossaryEntry) []request.GlossaryEntry {
-	var entries []request.GlossaryEntry
-	for _, e := range dbEntries {
-		entries = append(entries, request.GlossaryEntry{
+	entries := make([]request.GlossaryEntry, len(dbEntries))
+	for i, e := range dbEntries {
+		entries[i] = request.GlossaryEntry{
 			Source: e.Source,
 			Target: e.Target,
 			Note:   e.Note,
-		})
+		}
 	}
 	return entries
 }

@@ -606,13 +606,13 @@ func (i *translateAgentImpl) ListChapters(projectName string) ([]database.Chapte
 		if err != nil {
 			return nil, err
 		}
-		var result []database.Chapter
-		for _, ch := range comicChapters {
-			result = append(result, database.Chapter{
+		result := make([]database.Chapter, len(comicChapters))
+		for i, ch := range comicChapters {
+			result[i] = database.Chapter{
 				Order:   ch.Order,
 				Title:   ch.Title,
 				Project: proj.ID,
-			})
+			}
 		}
 		return result, nil
 	}
@@ -621,13 +621,13 @@ func (i *translateAgentImpl) ListChapters(projectName string) ([]database.Chapte
 	if err != nil {
 		return nil, err
 	}
-	var result []database.Chapter
-	for _, ch := range novelChapters {
-		result = append(result, database.Chapter{
+	result := make([]database.Chapter, len(novelChapters))
+	for i, ch := range novelChapters {
+		result[i] = database.Chapter{
 			Order:   ch.Order,
 			Title:   ch.Title,
 			Project: proj.ID,
-		})
+		}
 	}
 	return result, nil
 }

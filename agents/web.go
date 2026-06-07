@@ -57,12 +57,12 @@ func (i *translateAgentImpl) startServer() error {
 			if err != nil {
 				return nil, err
 			}
-			var result []server.ProjectInfo
-			for _, p := range projects {
-				result = append(result, server.ProjectInfo{
+			result := make([]server.ProjectInfo, len(projects))
+			for idx, p := range projects {
+				result[idx] = server.ProjectInfo{
 					Title:   p.Title,
 					WorkDir: p.WorkDir,
-				})
+				}
 			}
 			return result, nil
 		},
