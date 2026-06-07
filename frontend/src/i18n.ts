@@ -5,6 +5,10 @@ export const EXPORT_SUFFIXES_EN = ['_translated', '_reviewed', '_exported'] as c
 export const EXPORT_SUFFIXES_ZH = ['_已翻译', '_已校对', '_导出'] as const
 export const EXPORT_SUFFIXES = [...EXPORT_SUFFIXES_EN, ...EXPORT_SUFFIXES_ZH]
 
+export const PRESET_TAGS_RAW = ['框内', '框外'] as const
+export const PRESET_TAGS_EN = ['Inside', 'Outside'] as const
+export const PRESET_TAGS_ZH = ['框内', '框外'] as const
+
 const resources = {
   en: {
     translation: {
@@ -93,6 +97,12 @@ const resources = {
       createProject: 'Create Project',
       failedToLoadProjects: 'Failed to load projects',
       failedToAddProject: 'Failed to add project: ',
+      createNovelProject: 'Create Novel Project',
+      createComicProject: 'Create Comic Project',
+      selectWorkDir: 'Select Work Directory',
+      workDirSelected: 'Selected Directory:',
+      novel: 'Novel',
+      comic: 'Comic',
       rename: 'Rename',
       renameProject: 'Rename Project',
       renaming: 'Renaming...',
@@ -110,6 +120,14 @@ const resources = {
       deleteChapterTitle: 'Confirm Delete Chapter',
       systemSettings: 'System Settings',
       enableWebExtension: 'Enable Web Extension Support',
+      tagInside: PRESET_TAGS_EN[0],
+      tagOutside: PRESET_TAGS_EN[1],
+      tagManagement: 'Tag Management',
+      tag: 'Tag',
+      tagPlaceholder: 'New tag name...',
+      addTag: 'Add Tag',
+      lastTagWarning: 'At least one tag is required',
+      settingsTitle: 'Settings (Shortcut: G)',
 
       back: 'Back',
       translate: 'Translate',
@@ -142,6 +160,13 @@ const resources = {
       export: 'Export',
       exportSuccess: 'Exported successfully',
       failedToExport: 'Failed to export: ',
+      importLp: 'Import LP',
+      exportLp: 'Export LP',
+      importSuccess: 'Imported successfully',
+      failedToImport: 'Failed to import: ',
+      addViaLp: 'Create from LP Draft',
+      changeLp: 'Change LP Draft',
+      selectedLp: 'Selected LP',
       exportSuffixTranslated: EXPORT_SUFFIXES_EN[0],
       exportSuffixReviewed: EXPORT_SUFFIXES_EN[1],
       exportSuffixExported: EXPORT_SUFFIXES_EN[2],
@@ -239,6 +264,12 @@ const resources = {
       createProject: '创建项目',
       failedToLoadProjects: '加载项目失败',
       failedToAddProject: '添加项目失败: ',
+      createNovelProject: '创建小说项目',
+      createComicProject: '创建漫画项目',
+      selectWorkDir: '选择工作目录',
+      workDirSelected: '已选目录：',
+      novel: '小说',
+      comic: '漫画',
       rename: '重命名',
       renameProject: '重命名项目',
       renaming: '重命名中...',
@@ -256,6 +287,14 @@ const resources = {
       deleteChapterTitle: '确认删除章节',
       systemSettings: '系统设置',
       enableWebExtension: '启用网页插件支持',
+      tagInside: PRESET_TAGS_ZH[0],
+      tagOutside: PRESET_TAGS_ZH[1],
+      tagManagement: '标签管理',
+      tag: '标签',
+      tagPlaceholder: '新标签名称...',
+      addTag: '添加标签',
+      lastTagWarning: '至少需要保留一个标签',
+      settingsTitle: '设置 (Shortcut: G)',
 
       back: '返回',
       translate: '翻译',
@@ -285,6 +324,13 @@ const resources = {
       export: '导出',
       exportSuccess: '导出成功',
       failedToExport: '导出失败: ',
+      importLp: '导入 LP',
+      exportLp: '导出 LP',
+      importSuccess: '导入成功',
+      failedToImport: '导入失败: ',
+      addViaLp: '从 LP 文稿创建',
+      changeLp: '修改 LP 文稿',
+      selectedLp: '已选文稿',
       exportSuffixTranslated: EXPORT_SUFFIXES_ZH[0],
       exportSuffixReviewed: EXPORT_SUFFIXES_ZH[1],
       exportSuffixExported: EXPORT_SUFFIXES_ZH[2],

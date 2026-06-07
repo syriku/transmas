@@ -22,6 +22,9 @@ func (i *translateAgentImpl) ReadChapter(projectName string, chapterOrder uint, 
 	if err != nil {
 		return ChunkInfo{}, fmt.Errorf("failed to fetch project: %w", err)
 	}
+	if proj.ProjectType != database.ProjectTypeNovel {
+		return ChunkInfo{}, fmt.Errorf("project is not a novel project")
+	}
 
 	var chapter database.Chapter
 	err = i.db.Where(&database.Chapter{Project: proj.ID, Order: chapterOrder}).First(&chapter).Error
@@ -203,6 +206,15 @@ func (i *translateAgentImpl) GetChapterStatus(projectName string, chapterOrder u
 	proj, err := database.FetchProjectByOwnerAndTitle(i.db, i.userData.Username, projectName)
 	if err != nil {
 		return meta.StatusUncompleted, fmt.Errorf("failed to fetch project: %w", err)
+	}
+	if proj.ProjectType == database.ProjectTypeComic {
+		if proj.WorkDir == "" {
+			return meta.StatusUncompleted, nil
+		}
+		return i.comicAgent.GetChapterStatus(proj.WorkDir, chapterOrder)
+	}
+	if proj.ProjectType != database.ProjectTypeNovel {
+		return meta.StatusUncompleted, fmt.Errorf("project is not a novel project")
 	}
 
 	var chapter database.Chapter

@@ -74,7 +74,7 @@ func (i *translateAgentImpl) startServer() error {
 			return proj.WorkDir, nil
 		},
 		GetNextChapterOrder: func(projectName string) (uint, error) {
-			chapters, err := listChapters(i.db, i.userData.Username, projectName)
+			chapters, err := i.ListChapters(projectName)
 			if err != nil {
 				return 0, err
 			}

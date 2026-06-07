@@ -2,13 +2,14 @@ package agents
 
 import (
 	"github.com/syriku/aisdk/request"
+	"github.com/syriku/transmas/agents/comicagents/comicdb"
 	"github.com/syriku/transmas/agents/database"
 	"gorm.io/gorm"
 )
 
 type ProjectAgent interface {
 	ListProjects() ([]database.ProjectInfo, error)
-	AddProject(title string) error
+	AddProject(title string, projectType database.ProjectType) error
 	RenameProject(oldTitle string, newTitle string) error
 	UpdateProjectDir(title string, dir string) error
 	GetGlossary(title string) ([]request.GlossaryEntry, error)
@@ -21,16 +22,21 @@ type ChapterAgent interface {
 	AddChapter(projectName string, order uint, title string) error
 	UpdateChapterTitle(projectName string, order uint, title string) error
 	DeleteChapter(projectName string, order uint) error
+	UpdateChapterPages(projectName string, chapterOrder uint, pages []string) error
+	GetChapterPageMetas(projectName string, chapterOrder uint) ([]comicdb.PageMeta, error)
+	GetChapterTags(projectName string, chapterOrder uint) ([]string, error)
+	SetChapterTags(projectName string, chapterOrder uint, tags []string) error
 }
 
 func listProjects(db *gorm.DB, user string) ([]database.ProjectInfo, error) {
 	return database.FetchProjectsByOwner(db, user)
 }
 
-func addProject(db *gorm.DB, user string, title string) error {
+func addProject(db *gorm.DB, user string, title string, projectType database.ProjectType) error {
 	return database.AddProject(db, &database.ProjectInfo{
-		Title: title,
-		Owner: user,
+		Title:       title,
+		Owner:       user,
+		ProjectType: projectType,
 	})
 }
 

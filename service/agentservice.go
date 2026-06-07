@@ -6,8 +6,10 @@ import (
 
 	"github.com/syriku/aisdk/api"
 	"github.com/syriku/aisdk/request"
+	"github.com/syriku/label-go/label"
 	"github.com/syriku/quill-delta/quilldelta"
 	"github.com/syriku/transmas/agents"
+	"github.com/syriku/transmas/agents/comicagents/comicdb"
 	"github.com/syriku/transmas/agents/database"
 	"github.com/syriku/transmas/agents/meta"
 	"gorm.io/gorm"
@@ -96,7 +98,7 @@ func (a *AgentService) ListProjects() ([]database.ProjectInfo, error) {
 	return agent.ListProjects()
 }
 
-func (a *AgentService) AddProject(title string) error {
+func (a *AgentService) AddProject(title string, projectType database.ProjectType) error {
 	a.mu.RLock()
 	agent := a.agent
 	a.mu.RUnlock()
@@ -104,7 +106,7 @@ func (a *AgentService) AddProject(title string) error {
 	if agent == nil {
 		return fmt.Errorf("log in first please")
 	}
-	return agent.AddProject(title)
+	return agent.AddProject(title, projectType)
 }
 
 func (a *AgentService) RenameProject(oldTitle string, newTitle string) error {
@@ -182,6 +184,50 @@ func (a *AgentService) DeleteChapter(projectName string, order uint) error {
 		return fmt.Errorf("log in first please")
 	}
 	return agent.DeleteChapter(projectName, order)
+}
+
+func (a *AgentService) UpdateChapterPages(projectName string, chapterOrder uint, pages []string) error {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return fmt.Errorf("log in first please")
+	}
+	return agent.UpdateChapterPages(projectName, chapterOrder, pages)
+}
+
+func (a *AgentService) GetChapterPageMetas(projectName string, chapterOrder uint) ([]comicdb.PageMeta, error) {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return nil, fmt.Errorf("log in first please")
+	}
+	return agent.GetChapterPageMetas(projectName, chapterOrder)
+}
+
+func (a *AgentService) GetChapterTags(projectName string, chapterOrder uint) ([]string, error) {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return nil, fmt.Errorf("log in first please")
+	}
+	return agent.GetChapterTags(projectName, chapterOrder)
+}
+
+func (a *AgentService) SetChapterTags(projectName string, chapterOrder uint, tags []string) error {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return fmt.Errorf("log in first please")
+	}
+	return agent.SetChapterTags(projectName, chapterOrder, tags)
 }
 
 func (a *AgentService) GetGlossary(projectName string) ([]request.GlossaryEntry, error) {
@@ -369,4 +415,48 @@ func (a *AgentService) GetWebExtensionEnabled() (bool, error) {
 		return false, fmt.Errorf("log in first please")
 	}
 	return agent.GetWebExtensionEnabled()
+}
+
+func (a *AgentService) UpdatePageLabels(projectName string, chapterOrder uint, filename string, labels label.Labels) error {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return fmt.Errorf("log in first please")
+	}
+	return agent.UpdatePageLabels(projectName, chapterOrder, filename, labels)
+}
+
+func (a *AgentService) MergeLabels(projectName string, chapterOrder uint) (label.Labels, error) {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return nil, fmt.Errorf("log in first please")
+	}
+	return agent.MergeLabels(projectName, chapterOrder)
+}
+
+func (a *AgentService) ExportLp(projectName string, chapterOrder uint, filePath string) error {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return fmt.Errorf("log in first please")
+	}
+	return agent.ExportLp(projectName, chapterOrder, filePath)
+}
+
+func (a *AgentService) ImportLp(projectName string, chapterOrder uint, filePath string) error {
+	a.mu.RLock()
+	agent := a.agent
+	a.mu.RUnlock()
+
+	if agent == nil {
+		return fmt.Errorf("log in first please")
+	}
+	return agent.ImportLp(projectName, chapterOrder, filePath)
 }

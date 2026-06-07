@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { Dialogs } from '@wailsio/runtime'
 import ItemCard from './widgets/ItemCard'
 import ProjectSettingsModal from './widgets/ProjectSettingsModal'
 // @ts-ignore
@@ -11,18 +12,20 @@ import {
   UpdateProjectDir,
   GetChapterStatus,
   DeleteChapter,
+  ExportLp,
+  ImportLp,
 } from '../bindings/github.com/syriku/transmas/service/agentservice'
-// @ts-ignore
 import {
   SetWorkDir,
   ListCandidateChapters,
   LoadWebNovel,
+  InferLpChapterDir,
 } from '../bindings/github.com/syriku/transmas/service/systemservice'
 import NovelPreviewModal from './widgets/NovelPreviewModal'
 import { Novel } from '../bindings/github.com/syriku/kakuyomu-loader/models'
 
 import { useApp } from './AppContext'
-import { Chapter } from '../bindings/github.com/syriku/transmas/agents/database/models'
+import { Chapter, ProjectType } from '../bindings/github.com/syriku/transmas/agents/database/models'
 import { EXPORT_SUFFIXES } from './i18n'
 
 const ChaptersPage: React.FC = () => {
@@ -43,6 +46,7 @@ const ChaptersPage: React.FC = () => {
   const [urlInput, setUrlInput] = useState('')
   const [loadedNovel, setLoadedNovel] = useState<Novel | null>(null)
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
+  const [lpFilePath, setLpFilePath] = useState('')
   const navigate = useNavigate()
   const { currentProject, setCurrentProject, setCurrentChapter } = useApp()
 
@@ -75,7 +79,7 @@ const ChaptersPage: React.FC = () => {
 
   useEffect(() => {
     if (isModalOpen && workDir) {
-      ListCandidateChapters(workDir)
+      ListCandidateChapters(workDir, currentProject?.ProjectType === ProjectType.ProjectTypeComic)
         .then((list: string[]) => {
           const existingTitles = new Set(chapters.map((c) => c.Title))
           const available = (list || []).filter((title) => {
@@ -94,7 +98,7 @@ const ChaptersPage: React.FC = () => {
       setModalMode('local')
       setUrlInput('')
     }
-  }, [isModalOpen, workDir, chapters])
+  }, [isModalOpen, workDir, chapters, currentProject])
 
   const fetchProjectDetails = async () => {
     if (!projectName) return
@@ -189,6 +193,13 @@ const ChaptersPage: React.FC = () => {
       )
       await AddChapter(projectName, nextOrder, newTitle.trim())
       console.log('AddChapter successful')
+
+      if (lpFilePath) {
+        console.log(`Importing LP file: ${lpFilePath}`)
+        await ImportLp(projectName, nextOrder, lpFilePath)
+        setLpFilePath('')
+      }
+
       setNewTitle('')
       setIsModalOpen(false)
       await fetchChapters()
@@ -197,6 +208,54 @@ const ChaptersPage: React.FC = () => {
       alert(t('failedToAddChapter') + err.message)
     } finally {
       setIsCreating(false)
+    }
+  }
+
+  const handleSelectLp = async () => {
+    try {
+      const filePath = await Dialogs.OpenFile({
+        Title: t('importLp', '导入 LP 格式'),
+        Filters: [{ DisplayName: 'Text Files', Pattern: '*.txt' }],
+      })
+      if (filePath) {
+        setLpFilePath(filePath)
+        if (currentProject?.ProjectType === ProjectType.ProjectTypeComic && workDir) {
+          try {
+            const inferredDir = await InferLpChapterDir(workDir, filePath)
+            if (inferredDir) {
+              const existingTitles = new Set(chapters.map((c) => c.Title))
+              if (!existingTitles.has(inferredDir)) {
+                setNewTitle(inferredDir)
+              }
+            }
+          } catch (inferErr) {
+            console.error('Failed to infer LP chapter directory:', inferErr)
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error('Failed to select LP file:', err)
+      alert(t('failedToImport', '导入失败: ') + (err.message || err))
+    }
+  }
+
+  const handleExportLp = async (chapter: Chapter) => {
+    if (!projectName) return
+    setContextMenu(null)
+    try {
+      const defaultFilename = `${chapter.Title.replace(/\.txt$/i, '')}_labels.txt`
+      const filePath = await Dialogs.SaveFile({
+        Title: t('exportLp', '导出 LP 格式'),
+        Filename: defaultFilename,
+        Filters: [{ DisplayName: 'Text Files', Pattern: '*.txt' }],
+      })
+      if (filePath) {
+        await ExportLp(projectName, chapter.Order, filePath)
+        alert(t('exportSuccess', '导出成功'))
+      }
+    } catch (err: any) {
+      console.error('Failed to export LP:', err)
+      alert(t('failedToExport', '导出失败: ') + (err.message || err))
     }
   }
 
@@ -225,14 +284,18 @@ const ChaptersPage: React.FC = () => {
 
   const handleChapterClick = (chapter: Chapter) => {
     setCurrentChapter(chapter)
-    navigate(`/editor?project=${encodeURIComponent(projectName || '')}&chapter=${chapter.Order}`)
+    if (currentProject?.ProjectType === ProjectType.ProjectTypeComic) {
+      navigate(`/label?project=${encodeURIComponent(projectName || '')}&chapter=${chapter.Order}`)
+    } else {
+      navigate(`/editor?project=${encodeURIComponent(projectName || '')}&chapter=${chapter.Order}`)
+    }
   }
 
   const handleContextMenu = (e: React.MouseEvent, chapter: Chapter) => {
     e.preventDefault()
     e.stopPropagation()
     const MENU_W = 160
-    const MENU_H = 44
+    const MENU_H = currentProject?.ProjectType === ProjectType.ProjectTypeComic ? 88 : 44
     const vw = window.innerWidth
     const vh = window.innerHeight
     const x = Math.min(Math.max(e.clientX, 0), vw - MENU_W - 4)
@@ -475,22 +538,81 @@ const ChaptersPage: React.FC = () => {
                   }}
                 >
                   <h2 style={{ margin: 0 }}>{t('newChapter')}</h2>
-                  <button
-                    onClick={() => setModalMode('url')}
+                  {currentProject?.ProjectType !== ProjectType.ProjectTypeComic ? (
+                    <button
+                      onClick={() => setModalMode('url')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#007bff',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        padding: 0,
+                        whiteSpace: 'nowrap',
+                        marginRight: '16px',
+                      }}
+                    >
+                      {t('addViaUrl')}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleSelectLp}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#007bff',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        padding: 0,
+                        whiteSpace: 'nowrap',
+                        marginRight: '16px',
+                      }}
+                    >
+                      {lpFilePath ? t('changeLp', '修改 LP 文稿') : t('addViaLp', '从 LP 文稿创建')}
+                    </button>
+                  )}
+                </div>
+                {lpFilePath && (
+                  <div
                     style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#007bff',
-                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 12px',
+                      backgroundColor: '#f0f9ff',
+                      border: '1px solid #bae6fd',
+                      borderRadius: '8px',
+                      marginBottom: '16px',
                       fontSize: '14px',
-                      padding: 0,
-                      whiteSpace: 'nowrap',
-                      marginRight: '16px',
+                      color: '#0369a1',
                     }}
                   >
-                    {t('addViaUrl')}
-                  </button>
-                </div>
+                    <span
+                      style={{
+                        textOverflow: 'ellipsis',
+                        overflow: 'hidden',
+                        whiteSpace: 'nowrap',
+                        maxWidth: '300px',
+                      }}
+                      title={lpFilePath}
+                    >
+                      {t('selectedLp', '已选文稿')}: {lpFilePath.split(/[/\\]/).pop()}
+                    </span>
+                    <button
+                      onClick={() => setLpFilePath('')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        padding: '0 4px',
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
                 <div
                   style={{ position: 'relative', marginBottom: '20px' }}
                   onClick={(e) => e.stopPropagation()}
@@ -773,6 +895,31 @@ const ChaptersPage: React.FC = () => {
             boxSizing: 'border-box',
           }}
         >
+          {currentProject?.ProjectType === ProjectType.ProjectTypeComic && (
+            <button
+              onClick={() => handleExportLp(contextMenu.chapter)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                width: '100%',
+                boxSizing: 'border-box',
+                margin: 0,
+                padding: '8px 12px',
+                background: 'transparent',
+                border: 'none',
+                borderRadius: '4px',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '14px',
+                color: '#333',
+                lineHeight: '1.4',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f5f5f5')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              {t('exportLp', '导出 LP')}
+            </button>
+          )}
           <button
             onClick={() => openDeleteModal(contextMenu.chapter)}
             style={{

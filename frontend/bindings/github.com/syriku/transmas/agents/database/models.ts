@@ -71,6 +71,7 @@ export class ProjectInfo {
     "Glossary": request$0.GlossaryEntry[];
     "TranslatorKey": string;
     "AiConfigKey": string;
+    "ProjectType": ProjectType;
 
     /** Creates a new ProjectInfo instance. */
     constructor($$source: Partial<ProjectInfo> = {}) {
@@ -104,6 +105,9 @@ export class ProjectInfo {
         if (!("AiConfigKey" in $$source)) {
             this["AiConfigKey"] = "";
         }
+        if (!("ProjectType" in $$source)) {
+            this["ProjectType"] = ProjectType.$zero;
+        }
 
         Object.assign(this, $$source);
     }
@@ -120,6 +124,16 @@ export class ProjectInfo {
         return new ProjectInfo($$parsedSource as Partial<ProjectInfo>);
     }
 }
+
+export enum ProjectType {
+    /**
+     * The Go zero value for the underlying type of the enum.
+     */
+    $zero = 0,
+
+    ProjectTypeNovel = 0,
+    ProjectTypeComic = 1,
+};
 
 // Private type creation functions
 const $$createType0 = request$0.GlossaryEntry.createFrom;

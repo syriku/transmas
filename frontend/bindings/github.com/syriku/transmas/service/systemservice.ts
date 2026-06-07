@@ -19,9 +19,18 @@ export function DeleteUserData(): $CancellablePromise<void> {
     return $Call.ByID(1648938747);
 }
 
+/**
+ * GetChapterPages lists the image files (.jpg, .jpeg, .png) in the specified chapter folder.
+ */
+export function GetChapterPages(chapterName: string): $CancellablePromise<string[]> {
+    return $Call.ByID(2223825478, chapterName).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
 export function GetLanguagesMap(): $CancellablePromise<{ [_ in request$0.Language]?: string }> {
     return $Call.ByID(2561332342).then(($result: any) => {
-        return $$createType0($result);
+        return $$createType1($result);
     });
 }
 
@@ -30,7 +39,7 @@ export function GetLanguagesMap(): $CancellablePromise<{ [_ in request$0.Languag
  */
 export function GetModels(config: api$0.UserConfig): $CancellablePromise<string[]> {
     return $Call.ByID(1148362899, config).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType0($result);
     });
 }
 
@@ -38,9 +47,34 @@ export function GetSystemLanguage(): $CancellablePromise<string> {
     return $Call.ByID(2136166974);
 }
 
-export function ListCandidateChapters(dir: string): $CancellablePromise<string[]> {
-    return $Call.ByID(4243064222, dir).then(($result: any) => {
-        return $$createType1($result);
+/**
+ * GetWorkspace retrieves the current workspace path.
+ */
+export function GetWorkspace(): $CancellablePromise<string> {
+    return $Call.ByID(3257836510);
+}
+
+/**
+ * InferLpChapterDir checks if the chosen lp file is inside a direct subdirectory of the project directory.
+ * If it is, and that subdirectory contains images, it returns the name of the subdirectory.
+ * Otherwise it returns an empty string.
+ */
+export function InferLpChapterDir(projectDir: string, lpPath: string): $CancellablePromise<string> {
+    return $Call.ByID(3570710509, projectDir, lpPath);
+}
+
+export function ListCandidateChapters(dir: string, isComic: boolean): $CancellablePromise<string[]> {
+    return $Call.ByID(4243064222, dir, isComic).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
+/**
+ * ListCandidatePages lists candidate image pages in the specified directory.
+ */
+export function ListCandidatePages(dir: string): $CancellablePromise<string[]> {
+    return $Call.ByID(346912636, dir).then(($result: any) => {
+        return $$createType0($result);
     });
 }
 
@@ -58,8 +92,24 @@ export function SetWorkDir(): $CancellablePromise<string> {
     return $Call.ByID(1417197123);
 }
 
+/**
+ * SetWorkspace updates the workspace directory for the routing server.
+ */
+export function SetWorkspace(workspace: string): $CancellablePromise<void> {
+    return $Call.ByID(2924081106, workspace);
+}
+
+/**
+ * SortPagesNatural sorts the given list of pages naturally (alphanumeric sorting).
+ */
+export function SortPagesNatural(pages: string[]): $CancellablePromise<string[]> {
+    return $Call.ByID(965215698, pages).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
 // Private type creation functions
-const $$createType0 = $Create.Map($Create.Any, $Create.Any);
-const $$createType1 = $Create.Array($Create.Any);
+const $$createType0 = $Create.Array($Create.Any);
+const $$createType1 = $Create.Map($Create.Any, $Create.Any);
 const $$createType2 = loader$0.Novel.createFrom;
 const $$createType3 = $Create.Nullable($$createType2);
