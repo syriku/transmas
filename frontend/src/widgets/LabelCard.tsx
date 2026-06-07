@@ -88,9 +88,13 @@ export const LabelCard: React.FC<LabelCardProps> = ({
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault()
-      handleSave()
+    if (e.isComposing) return
+
+    if (e.key === 'Enter') {
+      if (!e.shiftKey) {
+        e.preventDefault()
+        handleSave()
+      }
     } else if (e.key === 'Escape') {
       e.preventDefault()
       setEditText(tag.text || '')
