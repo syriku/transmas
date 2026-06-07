@@ -196,6 +196,62 @@ func (s *SystemService) ListCandidatePages(dir string) ([]string, error) {
 	return files, nil
 }
 
+// InferLpChapterDir checks if the chosen lp file is inside a direct subdirectory of the project directory.
+// If it is, and that subdirectory contains images, it returns the name of the subdirectory.
+// Otherwise it returns an empty string.
+func (s *SystemService) InferLpChapterDir(projectDir string, lpPath string) (string, error) {
+	cleanProjectDir := filepath.Clean(projectDir)
+	cleanLpPath := filepath.Clean(lpPath)
+
+	rel, err := filepath.Rel(cleanProjectDir, cleanLpPath)
+	if err != nil {
+		return "", nil
+	}
+
+	if strings.HasPrefix(rel, "..") || rel == "." || rel == "" {
+		return "", nil
+	}
+
+	parts := strings.Split(filepath.ToSlash(rel), "/")
+	if len(parts) < 2 {
+		return "", nil
+	}
+
+	subDirName := parts[0]
+	subDirPath := filepath.Join(cleanProjectDir, subDirName)
+
+	info, err := os.Stat(subDirPath)
+	if err != nil || !info.IsDir() {
+		return "", nil
+	}
+
+	entries, err := os.ReadDir(subDirPath)
+	if err != nil {
+		return "", nil
+	}
+
+	hasImages := false
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if strings.HasPrefix(name, ".") {
+			continue
+		}
+		if config.IsValidImageExtension(filepath.Ext(name)) {
+			hasImages = true
+			break
+		}
+	}
+
+	if !hasImages {
+		return "", nil
+	}
+
+	return subDirName, nil
+}
+
 func (s *SystemService) GetLanguagesMap() map[request.Language]string {
 	return request.GetLanguagesMap()
 }

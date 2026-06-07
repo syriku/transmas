@@ -15,11 +15,11 @@ import {
   ExportLp,
   ImportLp,
 } from '../bindings/github.com/syriku/transmas/service/agentservice'
-// @ts-ignore
 import {
   SetWorkDir,
   ListCandidateChapters,
   LoadWebNovel,
+  InferLpChapterDir,
 } from '../bindings/github.com/syriku/transmas/service/systemservice'
 import NovelPreviewModal from './widgets/NovelPreviewModal'
 import { Novel } from '../bindings/github.com/syriku/kakuyomu-loader/models'
@@ -219,6 +219,19 @@ const ChaptersPage: React.FC = () => {
       })
       if (filePath) {
         setLpFilePath(filePath)
+        if (currentProject?.ProjectType === ProjectType.ProjectTypeComic && workDir) {
+          try {
+            const inferredDir = await InferLpChapterDir(workDir, filePath)
+            if (inferredDir) {
+              const existingTitles = new Set(chapters.map((c) => c.Title))
+              if (!existingTitles.has(inferredDir)) {
+                setNewTitle(inferredDir)
+              }
+            }
+          } catch (inferErr) {
+            console.error('Failed to infer LP chapter directory:', inferErr)
+          }
+        }
       }
     } catch (err: any) {
       console.error('Failed to select LP file:', err)

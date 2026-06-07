@@ -54,6 +54,15 @@ export function GetWorkspace(): $CancellablePromise<string> {
     return $Call.ByID(3257836510);
 }
 
+/**
+ * InferLpChapterDir checks if the chosen lp file is inside a direct subdirectory of the project directory.
+ * If it is, and that subdirectory contains images, it returns the name of the subdirectory.
+ * Otherwise it returns an empty string.
+ */
+export function InferLpChapterDir(projectDir: string, lpPath: string): $CancellablePromise<string> {
+    return $Call.ByID(3570710509, projectDir, lpPath);
+}
+
 export function ListCandidateChapters(dir: string, isComic: boolean): $CancellablePromise<string[]> {
     return $Call.ByID(4243064222, dir, isComic).then(($result: any) => {
         return $$createType0($result);

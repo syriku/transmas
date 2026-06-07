@@ -220,3 +220,90 @@ func TestSystemService_SortPagesNatural(t *testing.T) {
 		t.Errorf("expected sorted pages %v, got %v", expected, output)
 	}
 }
+
+func TestSystemService_InferLpChapterDir(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "transmas_infer_test")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create subdirectories and files
+	// 1. Chapter_01 (contains images + lp file)
+	chap01Dir := filepath.Join(tmpDir, "Chapter_01")
+	if err := os.MkdirAll(chap01Dir, 0755); err != nil {
+		t.Fatalf("failed to create dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(chap01Dir, "img1.png"), []byte("image"), 0644); err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+	lpPath01 := filepath.Join(chap01Dir, "lp.txt")
+	if err := os.WriteFile(lpPath01, []byte("lp"), 0644); err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+
+	// 2. Chapter_02 (contains ONLY lp file, NO images)
+	chap02Dir := filepath.Join(tmpDir, "Chapter_02")
+	if err := os.MkdirAll(chap02Dir, 0755); err != nil {
+		t.Fatalf("failed to create dir: %v", err)
+	}
+	lpPath02 := filepath.Join(chap02Dir, "lp.txt")
+	if err := os.WriteFile(lpPath02, []byte("lp"), 0644); err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+
+	// 3. File directly in project dir
+	rootLpPath := filepath.Join(tmpDir, "root_lp.txt")
+	if err := os.WriteFile(rootLpPath, []byte("lp"), 0644); err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+
+	// 4. File outside project dir
+	outsideDir, err := os.MkdirTemp("", "transmas_outside_test")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(outsideDir)
+	outsideLpPath := filepath.Join(outsideDir, "outside_lp.txt")
+	if err := os.WriteFile(outsideLpPath, []byte("lp"), 0644); err != nil {
+		t.Fatalf("failed to write file: %v", err)
+	}
+
+	ss := NewSystemService()
+
+	// Test 1: lp inside direct subdirectory containing images (should match)
+	res1, err := ss.InferLpChapterDir(tmpDir, lpPath01)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if res1 != "Chapter_01" {
+		t.Errorf("expected 'Chapter_01', got '%s'", res1)
+	}
+
+	// Test 2: lp inside direct subdirectory containing NO images (should NOT match)
+	res2, err := ss.InferLpChapterDir(tmpDir, lpPath02)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if res2 != "" {
+		t.Errorf("expected empty string, got '%s'", res2)
+	}
+
+	// Test 3: lp directly in project dir (should NOT match)
+	res3, err := ss.InferLpChapterDir(tmpDir, rootLpPath)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if res3 != "" {
+		t.Errorf("expected empty string, got '%s'", res3)
+	}
+
+	// Test 4: lp outside project dir (should NOT match)
+	res4, err := ss.InferLpChapterDir(tmpDir, outsideLpPath)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if res4 != "" {
+		t.Errorf("expected empty string, got '%s'", res4)
+	}
+}
