@@ -132,9 +132,9 @@ func (c *comicAgentImpl) EnsureProject(comicInfo comic.WorkComic) error {
 			}
 
 			for _, ch := range comicInfo.Chapters {
-				var pageNames []string
-				for _, p := range ch.Pages {
-					pageNames = append(pageNames, p.FileName)
+				pageNames := make([]string, len(ch.Pages))
+				for idx, p := range ch.Pages {
+					pageNames[idx] = p.FileName
 				}
 
 				tags := ch.Tags
@@ -750,9 +750,9 @@ func (c *comicAgentImpl) ImportLp(workDir string, order uint, filePath string) e
 		}
 
 		if len(wc.Pages) > 0 {
-			var pageNames []string
-			for _, p := range wc.Pages {
-				pageNames = append(pageNames, p.FileName)
+			pageNames := make([]string, len(wc.Pages))
+			for idx, p := range wc.Pages {
+				pageNames[idx] = p.FileName
 			}
 			ch.Pages = pageNames
 			ch.PageCount = uint(len(pageNames))

@@ -21,6 +21,7 @@ import (
 	"github.com/syriku/transmas/agents/comicagents/comicdb"
 	"github.com/syriku/transmas/agents/database"
 	"github.com/syriku/transmas/agents/meta"
+	"github.com/syriku/transmas/agents/novelagents"
 	"github.com/syriku/transmas/server"
 	"github.com/syriku/transmas/text"
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -105,6 +106,7 @@ type translateAgentImpl struct {
 	serverRunning     bool
 	webServer         server.TransmasClient
 	comicAgent        comicagents.ComicAgent
+	novelAgent        novelagents.NovelAgent
 }
 
 var (
@@ -136,6 +138,7 @@ func newTranslateAgentImpl(db *gorm.DB, username string) (*translateAgentImpl, e
 		}
 	}
 	impl.comicAgent = comicagents.NewComicAgent()
+	impl.novelAgent = novelagents.NewNovelAgent()
 	return impl, nil
 }
 
@@ -278,7 +281,7 @@ func (i *translateAgentImpl) translateCommon(projectName string, model string, h
 		return TranslationResponse{}, fmt.Errorf("failed to fetch translator: %w", err)
 	}
 
-	glossary, err := getGlossary(i.db, i.userData.Username, projectName)
+	glossary, err := i.GetGlossary(projectName)
 	if err != nil {
 		return TranslationResponse{}, fmt.Errorf("failed to fetch glossary: %w", err)
 	}
@@ -547,14 +550,34 @@ func (i *translateAgentImpl) UpdateProjectDir(title string, dir string) error {
 			return err
 		}
 	}
+	if proj.ProjectType == database.ProjectTypeNovel && dir != "" {
+		err = i.novelAgent.EnsureProject(proj.Title, dir)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 func (i *translateAgentImpl) GetGlossary(title string) ([]request.GlossaryEntry, error) {
+	proj, err := database.FetchProjectByOwnerAndTitle(i.db, i.userData.Username, title)
+	if err != nil {
+		return nil, err
+	}
+	if proj.ProjectType == database.ProjectTypeNovel {
+		return i.novelAgent.GetGlossary(proj.WorkDir)
+	}
 	return getGlossary(i.db, i.userData.Username, title)
 }
 
 func (i *translateAgentImpl) UpdateGlossary(title string, glossary []request.GlossaryEntry) error {
+	proj, err := database.FetchProjectByOwnerAndTitle(i.db, i.userData.Username, title)
+	if err != nil {
+		return err
+	}
+	if proj.ProjectType == database.ProjectTypeNovel {
+		return i.novelAgent.UpdateGlossary(proj.WorkDir, glossary)
+	}
 	return updateGlossary(i.db, i.userData.Username, title, glossary)
 }
 
@@ -583,18 +606,30 @@ func (i *translateAgentImpl) ListChapters(projectName string) ([]database.Chapte
 		if err != nil {
 			return nil, err
 		}
-		var result []database.Chapter
-		for _, ch := range comicChapters {
-			result = append(result, database.Chapter{
-				Model:   ch.Model,
+		result := make([]database.Chapter, len(comicChapters))
+		for i, ch := range comicChapters {
+			result[i] = database.Chapter{
 				Order:   ch.Order,
 				Title:   ch.Title,
 				Project: proj.ID,
-			})
+			}
 		}
 		return result, nil
 	}
-	return listChapters(i.db, i.userData.Username, projectName)
+
+	novelChapters, err := i.novelAgent.ListChapters(proj.WorkDir)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]database.Chapter, len(novelChapters))
+	for i, ch := range novelChapters {
+		result[i] = database.Chapter{
+			Order:   ch.Order,
+			Title:   ch.Title,
+			Project: proj.ID,
+		}
+	}
+	return result, nil
 }
 
 func (i *translateAgentImpl) AddChapter(projectName string, order uint, title string) error {
@@ -608,7 +643,8 @@ func (i *translateAgentImpl) AddChapter(projectName string, order uint, title st
 		}
 		return i.comicAgent.AddChapter(proj.WorkDir, order, title)
 	}
-	return addChapter(i.db, i.userData.Username, projectName, order, title)
+
+	return i.novelAgent.AddChapter(proj.WorkDir, order, title)
 }
 
 func (i *translateAgentImpl) UpdateChapterTitle(projectName string, order uint, title string) error {
@@ -622,7 +658,8 @@ func (i *translateAgentImpl) UpdateChapterTitle(projectName string, order uint, 
 		}
 		return i.comicAgent.UpdateChapterTitle(proj.WorkDir, order, title)
 	}
-	return updateChapterTitle(i.db, i.userData.Username, projectName, order, title)
+
+	return i.novelAgent.UpdateChapterTitle(proj.WorkDir, order, title)
 }
 
 func (i *translateAgentImpl) DeleteChapter(projectName string, order uint) error {
@@ -636,7 +673,8 @@ func (i *translateAgentImpl) DeleteChapter(projectName string, order uint) error
 		}
 		return i.comicAgent.DeleteChapter(proj.WorkDir, order)
 	}
-	return deleteChapter(i.db, i.userData.Username, projectName, order)
+
+	return i.novelAgent.DeleteChapter(proj.WorkDir, order)
 }
 
 func (i *translateAgentImpl) UpdateChapterPages(projectName string, chapterOrder uint, pages []string) error {
@@ -770,8 +808,7 @@ func (i *translateAgentImpl) SetCurrentChunkTranslated(completed bool) error {
 	}
 
 	i.chapterMeta.SetTranslated(i.currentChunkIndex, completed)
-	meta.SaveMetaAsync(i.chapterFile.Dir, i.chapterFile.FileName, i.chapterMeta)
-	return nil
+	return i.novelAgent.SaveChapterMeta(i.chapterFile.Dir, i.chapterMeta.ChapterOrder, i.chapterMeta)
 }
 
 func (i *translateAgentImpl) SetCurrentChunkReviewed(completed bool) error {
@@ -783,6 +820,5 @@ func (i *translateAgentImpl) SetCurrentChunkReviewed(completed bool) error {
 	}
 
 	i.chapterMeta.SetReviewed(i.currentChunkIndex, completed)
-	meta.SaveMetaAsync(i.chapterFile.Dir, i.chapterFile.FileName, i.chapterMeta)
-	return nil
+	return i.novelAgent.SaveChapterMeta(i.chapterFile.Dir, i.chapterMeta.ChapterOrder, i.chapterMeta)
 }

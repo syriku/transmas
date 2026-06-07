@@ -2,7 +2,6 @@ package database
 
 import (
 	"encoding/json"
-	"errors"
 	"os"
 
 	"github.com/syriku/aisdk/request"
@@ -22,7 +21,7 @@ func ConnectDB() (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = db.AutoMigrate(&UserData{}, &ProjectInfo{}, &Chapter{})
+	err = db.AutoMigrate(&UserData{}, &ProjectInfo{})
 	if err != nil {
 		return nil, err
 	}
@@ -53,41 +52,6 @@ func RenameProject(db *gorm.DB, owner string, oldTitle string, newTitle string) 
 	return db.Model(&ProjectInfo{}).Where(&ProjectInfo{Owner: owner, Title: oldTitle}).Update("title", newTitle).Error
 }
 
-func AddChapter(db *gorm.DB, chapter *Chapter) error {
-	var proj ProjectInfo
-	if err := db.First(&proj, chapter.Project).Error; err != nil {
-		return err
-	}
-	if proj.ProjectType != ProjectTypeNovel {
-		return errors.New("project is not a novel project")
-	}
-	return db.Create(chapter).Error
-}
-
-func FetchChaptersByProject(db *gorm.DB, projectID uint) ([]Chapter, error) {
-	var proj ProjectInfo
-	if err := db.First(&proj, projectID).Error; err != nil {
-		return nil, err
-	}
-	if proj.ProjectType != ProjectTypeNovel {
-		return nil, errors.New("project is not a novel project")
-	}
-	var chapters []Chapter
-	err := db.Where(&Chapter{Project: projectID}).Find(&chapters).Error
-	return chapters, err
-}
-
-func UpdateChapterTitle(db *gorm.DB, projectID uint, order uint, title string) error {
-	var proj ProjectInfo
-	if err := db.First(&proj, projectID).Error; err != nil {
-		return err
-	}
-	if proj.ProjectType != ProjectTypeNovel {
-		return errors.New("project is not a novel project")
-	}
-	return db.Model(&Chapter{}).Where(&Chapter{Project: projectID, Order: order}).Update("title", title).Error
-}
-
 func UpdateProjectGlossary(db *gorm.DB, owner string, proj string, glossary []request.GlossaryEntry) error {
 	data, err := json.Marshal(glossary)
 	if err != nil {
@@ -108,25 +72,10 @@ func DeleteProject(db *gorm.DB, owner string, title string) error {
 		return err
 	}
 	return db.Transaction(func(tx *gorm.DB) error {
-		// Hard delete all chapters belonging to the project
-		if err := tx.Unscoped().Where(&Chapter{Project: project.ID}).Delete(&Chapter{}).Error; err != nil {
-			return err
-		}
 		// Hard delete the project itself
 		if err := tx.Unscoped().Delete(&project).Error; err != nil {
 			return err
 		}
 		return nil
 	})
-}
-
-func DeleteChapter(db *gorm.DB, projectID uint, order uint) error {
-	var proj ProjectInfo
-	if err := db.First(&proj, projectID).Error; err != nil {
-		return err
-	}
-	if proj.ProjectType != ProjectTypeNovel {
-		return errors.New("project is not a novel project")
-	}
-	return db.Unscoped().Where(&Chapter{Project: projectID, Order: order}).Delete(&Chapter{}).Error
 }
