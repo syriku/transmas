@@ -14,6 +14,8 @@ import {
   DeleteChapter,
   ExportLp,
   ImportLp,
+  ReadChapter,
+  ExportTranslatedChapter,
 } from '../bindings/github.com/syriku/transmas/service/agentservice'
 import {
   SetWorkDir,
@@ -259,6 +261,35 @@ const ChaptersPage: React.FC = () => {
     }
   }
 
+  const handleExportNovel = async (chapter: Chapter) => {
+    if (!projectName) return
+    setContextMenu(null)
+    try {
+      const status = chapterStatuses.get(chapter.Order)
+      let suffix = t('exportSuffixExported')
+      if (status === 2) {
+        suffix = t('exportSuffixReviewed')
+      } else if (status === 1) {
+        suffix = t('exportSuffixTranslated')
+      }
+
+      const defaultFilename = `${chapter.Title.replace(/\.txt$/i, '')}${suffix}.txt`
+      const filePath = await Dialogs.SaveFile({
+        Title: t('export', '导出'),
+        Filename: defaultFilename,
+        Filters: [{ DisplayName: 'Text Files', Pattern: '*.txt' }],
+      })
+      if (filePath) {
+        await ReadChapter(projectName, chapter.Order, true)
+        await ExportTranslatedChapter(filePath)
+        alert(t('exportSuccess', '导出成功'))
+      }
+    } catch (err: any) {
+      console.error('Failed to export novel chapter:', err)
+      alert(t('failedToExport', '导出失败: ') + (err.message || err))
+    }
+  }
+
   const handleAddViaUrlConfirm = async () => {
     if (!urlInput.trim()) return
     setIsCreating(true)
@@ -295,7 +326,7 @@ const ChaptersPage: React.FC = () => {
     e.preventDefault()
     e.stopPropagation()
     const MENU_W = 160
-    const MENU_H = currentProject?.ProjectType === ProjectType.ProjectTypeComic ? 88 : 44
+    const MENU_H = 88
     const vw = window.innerWidth
     const vh = window.innerHeight
     const x = Math.min(Math.max(e.clientX, 0), vw - MENU_W - 4)
@@ -895,7 +926,7 @@ const ChaptersPage: React.FC = () => {
             boxSizing: 'border-box',
           }}
         >
-          {currentProject?.ProjectType === ProjectType.ProjectTypeComic && (
+          {currentProject?.ProjectType === ProjectType.ProjectTypeComic ? (
             <button
               onClick={() => handleExportLp(contextMenu.chapter)}
               style={{
@@ -918,6 +949,30 @@ const ChaptersPage: React.FC = () => {
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
               {t('exportLp', '导出 LP')}
+            </button>
+          ) : (
+            <button
+              onClick={() => handleExportNovel(contextMenu.chapter)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                width: '100%',
+                boxSizing: 'border-box',
+                margin: 0,
+                padding: '8px 12px',
+                background: 'transparent',
+                border: 'none',
+                borderRadius: '4px',
+                textAlign: 'left',
+                cursor: 'pointer',
+                fontSize: '14px',
+                color: '#333',
+                lineHeight: '1.4',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f5f5f5')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              {t('export', '导出')}
             </button>
           )}
           <button
