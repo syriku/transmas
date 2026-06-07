@@ -56,42 +56,6 @@ func updateGlossary(db *gorm.DB, user string, title string, glossary []request.G
 	return database.UpdateProjectGlossary(db, user, title, glossary)
 }
 
-func listChapters(db *gorm.DB, user string, projectName string) ([]database.Chapter, error) {
-	proj, err := database.FetchProjectByOwnerAndTitle(db, user, projectName)
-	if err != nil {
-		return nil, err
-	}
-	return database.FetchChaptersByProject(db, proj.ID)
-}
-
-func addChapter(db *gorm.DB, user string, projectName string, order uint, title string) error {
-	proj, err := database.FetchProjectByOwnerAndTitle(db, user, projectName)
-	if err != nil {
-		return err
-	}
-	return database.AddChapter(db, &database.Chapter{
-		Project: proj.ID,
-		Order:   order,
-		Title:   title,
-	})
-}
-
-func updateChapterTitle(db *gorm.DB, user string, projectName string, order uint, title string) error {
-	proj, err := database.FetchProjectByOwnerAndTitle(db, user, projectName)
-	if err != nil {
-		return err
-	}
-	return database.UpdateChapterTitle(db, proj.ID, order, title)
-}
-
 func deleteProject(db *gorm.DB, user string, title string) error {
 	return database.DeleteProject(db, user, title)
-}
-
-func deleteChapter(db *gorm.DB, user string, projectName string, order uint) error {
-	proj, err := database.FetchProjectByOwnerAndTitle(db, user, projectName)
-	if err != nil {
-		return err
-	}
-	return database.DeleteChapter(db, proj.ID, order)
 }

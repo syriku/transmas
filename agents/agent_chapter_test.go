@@ -717,6 +717,13 @@ func TestTranslateAgentImpl_GetChapterStatus(t *testing.T) {
 }
 
 func TestTranslateAgentImpl_DeleteProjectAndChapter(t *testing.T) {
+	// Setup temporary directory for project
+	tmpDir, err := os.MkdirTemp("", "transmas_agent_delete_test")
+	if err != nil {
+		t.Fatalf("failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
 	// Setup in-memory SQLite DB
 	db, err := gorm.Open(sqlite.Open("file:memdb_delete?mode=memory&cache=shared"), &gorm.Config{})
 	if err != nil {
@@ -739,6 +746,12 @@ func TestTranslateAgentImpl_DeleteProjectAndChapter(t *testing.T) {
 	err = agent.AddProject(projectName, database.ProjectTypeNovel)
 	if err != nil {
 		t.Fatalf("failed to add project: %v", err)
+	}
+
+	// Update project dir to setup SQLite DB location
+	err = agent.UpdateProjectDir(projectName, tmpDir)
+	if err != nil {
+		t.Fatalf("failed to update project workdir: %v", err)
 	}
 
 	// Add chapter
@@ -807,15 +820,8 @@ func TestTranslateAgentImpl_DeleteProjectAndChapter(t *testing.T) {
 		t.Errorf("expected project to be deleted, but still got: %v", projects)
 	}
 
-	// Verify chapters under that project ID are hard deleted from the database
-	var remainingChapters []database.Chapter
-	err = db.Unscoped().Where(&database.Chapter{Project: proj.ID}).Find(&remainingChapters).Error
-	if err != nil {
-		t.Fatalf("failed to query chapters directly: %v", err)
-	}
-	if len(remainingChapters) != 0 {
-		t.Errorf("expected all chapters of deleted project to be hard-deleted, but found: %v", remainingChapters)
-	}
+	// Since chapters are now stored in the project's local SQLite database (which is self-contained),
+	// they are deleted when the project's directory is cleaned up.
 
 	// Verify we can re-create project without unique constraint conflict
 	err = agent.AddProject(projectName, database.ProjectTypeNovel)

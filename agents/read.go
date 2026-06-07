@@ -26,8 +26,7 @@ func (i *translateAgentImpl) ReadChapter(projectName string, chapterOrder uint, 
 		return ChunkInfo{}, fmt.Errorf("project is not a novel project")
 	}
 
-	var chapter database.Chapter
-	err = i.db.Where(&database.Chapter{Project: proj.ID, Order: chapterOrder}).First(&chapter).Error
+	chapter, err := i.novelAgent.GetChapter(proj.WorkDir, chapterOrder)
 	if err != nil {
 		return ChunkInfo{}, fmt.Errorf("failed to fetch chapter: %w", err)
 	}
@@ -79,15 +78,23 @@ func (i *translateAgentImpl) ReadChapter(projectName string, chapterOrder uint, 
 		return ChunkInfo{}, fmt.Errorf("failed to read translated file: %w", err)
 	}
 
-	m, err := meta.LoadMeta(proj.WorkDir, filename)
-	if err != nil {
-		return ChunkInfo{}, fmt.Errorf("failed to load chapter meta: %w", err)
+	m := &meta.ChapterMeta{
+		ProjectName:      projectName,
+		ChapterOrder:     chapter.Order,
+		ChapterTitle:     chapter.Title,
+		LastChunkSize:    chapter.LastChunkSize,
+		LastChunkCount:   chapter.LastChunkCount,
+		TranslatedChunks: chapter.TranslatedChunks,
+		ReviewedChunks:   chapter.ReviewedChunks,
+	}
+	if m.TranslatedChunks == nil {
+		m.TranslatedChunks = []int{}
+	}
+	if m.ReviewedChunks == nil {
+		m.ReviewedChunks = []int{}
 	}
 
-	m.ProjectName = projectName
-	m.ChapterOrder = chapterOrder
-	m.ChapterTitle = filename
-
+	metaChanged := false
 	if m.LastChunkSize > 0 && m.LastChunkSize != cf.MaxChunkRuneSize {
 		// Size changed: perform conversion
 		fullDelta := quilldelta.NewDelta()
@@ -99,6 +106,7 @@ func (i *translateAgentImpl) ReadChapter(projectName string, chapterOrder uint, 
 
 		m.TranslatedChunks = meta.ConvertIndicesForSizeChange(m.TranslatedChunks, m.LastChunkSize, cf.MaxChunkRuneSize, fullDelta)
 		m.ReviewedChunks = meta.ConvertIndicesForSizeChange(m.ReviewedChunks, m.LastChunkSize, cf.MaxChunkRuneSize, fullDelta)
+		metaChanged = true
 	} else if m.LastChunkSize == 0 {
 		// New meta, initialize from currently loaded translatedChunks
 		var indices []int
@@ -116,13 +124,21 @@ func (i *translateAgentImpl) ReadChapter(projectName string, chapterOrder uint, 
 			}
 		}
 		m.TranslatedChunks = indices
+		metaChanged = true
 	}
 
-	m.LastChunkSize = cf.MaxChunkRuneSize
-	m.LastChunkCount = len(chunks)
+	if m.LastChunkSize != cf.MaxChunkRuneSize || m.LastChunkCount != len(chunks) {
+		m.LastChunkSize = cf.MaxChunkRuneSize
+		m.LastChunkCount = len(chunks)
+		metaChanged = true
+	}
 
-	// Save meta asynchronously
-	meta.SaveMetaAsync(proj.WorkDir, filename, m)
+	if metaChanged {
+		err = i.novelAgent.SaveChapterMeta(proj.WorkDir, chapterOrder, m)
+		if err != nil {
+			return ChunkInfo{}, fmt.Errorf("failed to save chapter meta to local DB: %w", err)
+		}
+	}
 
 	i.chapterMu.Lock()
 	i.chapterFile = cf
@@ -217,19 +233,8 @@ func (i *translateAgentImpl) GetChapterStatus(projectName string, chapterOrder u
 		return meta.StatusUncompleted, fmt.Errorf("project is not a novel project")
 	}
 
-	var chapter database.Chapter
-	err = i.db.Where(&database.Chapter{Project: proj.ID, Order: chapterOrder}).First(&chapter).Error
-	if err != nil {
-		return meta.StatusUncompleted, fmt.Errorf("failed to fetch chapter: %w", err)
-	}
-
-	filename := chapter.Title
-	if !strings.HasSuffix(filename, ".txt") {
-		filename = filename + ".txt"
-	}
-
 	i.chapterMu.RLock()
-	isSameChapter := i.chapterFile != nil && i.chapterFile.Dir == proj.WorkDir && i.chapterFile.FileName == filename
+	isSameChapter := i.chapterFile != nil && i.chapterFile.Dir == proj.WorkDir && i.chapterMeta != nil && i.chapterMeta.ChapterOrder == chapterOrder
 	if isSameChapter {
 		m := i.chapterMeta
 		totalChunks := len(i.chunks)
@@ -242,11 +247,6 @@ func (i *translateAgentImpl) GetChapterStatus(projectName string, chapterOrder u
 	}
 	i.chapterMu.RUnlock()
 
-	// Not the cached chapter: only read the existing Meta file
-	m, err := meta.LoadMeta(proj.WorkDir, filename)
-	if err != nil {
-		return meta.StatusUncompleted, fmt.Errorf("failed to load chapter meta: %w", err)
-	}
-
-	return m.GetStatus(m.LastChunkCount), nil
+	// Not the cached chapter: delegate to novelAgent
+	return i.novelAgent.GetChapterStatus(proj.WorkDir, chapterOrder)
 }

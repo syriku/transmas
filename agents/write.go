@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/syriku/quill-delta/quilldelta"
-	"github.com/syriku/transmas/agents/meta"
 )
 
 type WriteAgent interface {
@@ -186,7 +185,9 @@ func (i *translateAgentImpl) SaveChapter() error {
 			i.chapterMeta.LastChunkCount = len(i.chunks)
 			if i.chapterFile != nil {
 				i.chapterMeta.LastChunkSize = i.chapterFile.MaxChunkRuneSize
-				meta.SaveMetaAsync(i.chapterFile.Dir, i.chapterFile.FileName, i.chapterMeta)
+				if err := i.novelAgent.SaveChapterMeta(i.chapterFile.Dir, i.chapterMeta.ChapterOrder, i.chapterMeta); err != nil {
+					return fmt.Errorf("failed to save chapter meta: %w", err)
+				}
 			}
 		}
 
