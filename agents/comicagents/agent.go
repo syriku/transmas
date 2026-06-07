@@ -1,7 +1,6 @@
 package comicagents
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"image"
@@ -71,13 +70,6 @@ func (c *comicAgentImpl) getDB(workDir string) (*gorm.DB, error) {
 			sqlDB.Close()
 		}
 		return nil, fmt.Errorf("failed to auto migrate tables: %w", err)
-	}
-
-	if err := migrateLabels(db); err != nil {
-		if sqlDB, errClose := db.DB(); errClose == nil {
-			sqlDB.Close()
-		}
-		return nil, fmt.Errorf("failed to migrate labels: %w", err)
 	}
 
 	return db, nil
@@ -800,118 +792,4 @@ func (c *comicAgentImpl) ImportLp(workDir string, order uint, filePath string) e
 // NewComicAgent creates and returns a new instance of ComicAgent.
 func NewComicAgent() ComicAgent {
 	return new(comicAgentImpl)
-}
-
-type tempPageMeta struct {
-	ID        uint
-	ChapterID uint
-	Labels    string
-}
-
-func migrateLabels(db *gorm.DB) error {
-	if !db.Migrator().HasTable(&comicdb.PageMeta{}) {
-		return nil
-	}
-
-	var records []tempPageMeta
-	if err := db.Table("page_meta").Select("id, chapter_id, labels").Find(&records).Error; err != nil {
-		return nil
-	}
-
-	var chapters []comicdb.Chapter
-	if err := db.Find(&chapters).Error; err != nil {
-		return err
-	}
-
-	chapterTags := make(map[uint][]string)
-	for _, ch := range chapters {
-		chapterTags[ch.ID] = ch.Tags
-	}
-
-	type compatLabel struct {
-		Pos        [2]float32 `json:"pos"`
-		Tag        any        `json:"tag"`
-		Text       string     `json:"text"`
-		Translated bool       `json:"translated"`
-		Reviewed   bool       `json:"reviewed"`
-		Page       string     `json:"page"`
-	}
-
-	for _, record := range records {
-		if record.Labels == "" || record.Labels == "null" || record.Labels == "[]" {
-			continue
-		}
-
-		var labels []compatLabel
-		if err := json.Unmarshal([]byte(record.Labels), &labels); err != nil {
-			continue
-		}
-
-		modified := false
-		tags := chapterTags[record.ChapterID]
-		activeTagsCount := len(tags)
-		if activeTagsCount == 0 {
-			activeTagsCount = len(defaultTagPreset)
-		}
-
-		updatedLabels := make([]label.Label, len(labels))
-		for idx, l := range labels {
-			var tagIdx int
-			switch v := l.Tag.(type) {
-			case string:
-				found := false
-				for i, t := range tags {
-					if t == v {
-						tagIdx = i + 1
-						found = true
-						break
-					}
-				}
-				if !found {
-					for i, t := range defaultTagPreset {
-						if t == v {
-							tagIdx = i + 1
-							found = true
-							break
-						}
-					}
-				}
-				if !found {
-					tagIdx = 1
-				}
-				modified = true
-			case float64:
-				tagIdx = int(v)
-			default:
-				tagIdx = 1
-				modified = true
-			}
-
-			if tagIdx <= 0 || tagIdx > activeTagsCount {
-				tagIdx = 1
-				modified = true
-			}
-
-			updatedLabels[idx] = label.Label{
-				Pos:        l.Pos,
-				Tag:        tagIdx,
-				Text:       l.Text,
-				Translated: l.Translated,
-				Reviewed:   l.Reviewed,
-				Page:       l.Page,
-			}
-		}
-
-		if modified {
-			updatedJSON, err := json.Marshal(updatedLabels)
-			if err != nil {
-				return err
-			}
-			if err := db.Table("page_meta").Where("id = ?", record.ID).Update("labels", string(updatedJSON)).Error; err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
 }
