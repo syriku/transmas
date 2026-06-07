@@ -49,7 +49,7 @@ func TestEnsureProject(t *testing.T) {
 				Labels: label.Labels{
 					{
 						Pos:        [2]float32{10.0, 20.0},
-						Tag:        "dialogue",
+						Tag:        1,
 						Text:       "Hello World",
 						Translated: false,
 						Reviewed:   false,
@@ -420,7 +420,7 @@ func TestLabelsAndLpOperations(t *testing.T) {
 	labels1 := label.Labels{
 		{
 			Pos:        [2]float32{0.1, 0.2},
-			Tag:        "inside",
+			Tag:        1,
 			Text:       "Label 1",
 			Translated: true,
 			Reviewed:   false,
@@ -434,7 +434,7 @@ func TestLabelsAndLpOperations(t *testing.T) {
 	labels2 := label.Labels{
 		{
 			Pos:        [2]float32{0.5, 0.6},
-			Tag:        "outside",
+			Tag:        2,
 			Text:       "Label 2",
 			Translated: true,
 			Reviewed:   true,
@@ -519,11 +519,11 @@ Label 2 Imported
 
 	for _, pm := range metas {
 		if pm.FileName == "page1.jpg" {
-			if len(pm.Labels) != 1 || pm.Labels[0].Text != "Label 1 Imported" || pm.Labels[0].Tag != "inside" {
+			if len(pm.Labels) != 1 || pm.Labels[0].Text != "Label 1 Imported" || pm.Labels[0].Tag != 1 {
 				t.Errorf("page1 labels not imported correctly: %+v", pm.Labels)
 			}
 		} else if pm.FileName == "page2.jpg" {
-			if len(pm.Labels) != 1 || pm.Labels[0].Text != "Label 2 Imported" || pm.Labels[0].Tag != "new_tag" {
+			if len(pm.Labels) != 1 || pm.Labels[0].Text != "Label 2 Imported" || pm.Labels[0].Tag != 3 {
 				t.Errorf("page2 labels not imported correctly: %+v", pm.Labels)
 			}
 		}

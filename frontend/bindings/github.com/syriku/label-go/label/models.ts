@@ -10,7 +10,7 @@ import { Create as $Create } from "@wailsio/runtime";
  */
 export class Label {
     "pos": number[];
-    "tag": string;
+    "tag": number;
     "text": string;
     "translated": boolean;
     "reviewed": boolean;
@@ -22,7 +22,7 @@ export class Label {
             this["pos"] = Array.from({ length: 2 }, () => 0);
         }
         if (!("tag" in $$source)) {
-            this["tag"] = "";
+            this["tag"] = 0;
         }
         if (!("text" in $$source)) {
             this["text"] = "";

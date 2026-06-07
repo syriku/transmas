@@ -1,6 +1,7 @@
 package comicagents
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"image"
@@ -72,6 +73,13 @@ func (c *comicAgentImpl) getDB(workDir string) (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to auto migrate tables: %w", err)
 	}
 
+	if err := migrateLabels(db); err != nil {
+		if sqlDB, errClose := db.DB(); errClose == nil {
+			sqlDB.Close()
+		}
+		return nil, fmt.Errorf("failed to migrate labels: %w", err)
+	}
+
 	return db, nil
 }
 
@@ -134,9 +142,13 @@ func (c *comicAgentImpl) EnsureProject(comicInfo comic.WorkComic) error {
 					return err
 				}
 
+				activeTagsCount := len(tags)
 				labelsByPage := make(map[string]label.Labels)
 				for _, l := range ch.Labels {
 					if l.Page != "" {
+						if l.Tag <= 0 || l.Tag > activeTagsCount {
+							l.Tag = 1
+						}
 						labelsByPage[l.Page] = append(labelsByPage[l.Page], l)
 					}
 				}
@@ -469,8 +481,34 @@ func (c *comicAgentImpl) SetChapterTags(workDir string, order uint, tags []strin
 		return err
 	}
 
-	ch.Tags = cleaned
-	return db.Save(&ch).Error
+	return db.Transaction(func(tx *gorm.DB) error {
+		ch.Tags = cleaned
+		if err := tx.Save(&ch).Error; err != nil {
+			return err
+		}
+
+		var pageMetas []comicdb.PageMeta
+		if err := tx.Where("chapter_id = ?", ch.ID).Find(&pageMetas).Error; err != nil {
+			return err
+		}
+
+		newLimit := len(cleaned)
+		for _, pm := range pageMetas {
+			modified := false
+			for idx := range pm.Labels {
+				if pm.Labels[idx].Tag <= 0 || pm.Labels[idx].Tag > newLimit {
+					pm.Labels[idx].Tag = 1
+					modified = true
+				}
+			}
+			if modified {
+				if err := tx.Save(&pm).Error; err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
 }
 
 func (c *comicAgentImpl) UpdatePageLabels(workDir string, order uint, filename string, labels label.Labels) error {
@@ -492,6 +530,16 @@ func (c *comicAgentImpl) UpdatePageLabels(workDir string, order uint, filename s
 	err = db.Where("chapter_id = ? AND file_name = ?", ch.ID, filename).Limit(1).Find(&metas).Error
 	if err != nil {
 		return err
+	}
+
+	activeTagsCount := len(ch.Tags)
+	if activeTagsCount == 0 {
+		activeTagsCount = len(defaultTagPreset)
+	}
+	for idx := range labels {
+		if labels[idx].Tag <= 0 || labels[idx].Tag > activeTagsCount {
+			labels[idx].Tag = 1
+		}
 	}
 
 	if len(metas) == 0 {
@@ -660,9 +708,20 @@ func (c *comicAgentImpl) ImportLp(workDir string, order uint, filePath string) e
 		return err
 	}
 
+	activeTagsCount := len(ch.Tags)
+	if len(wc.Tags) > 0 {
+		activeTagsCount = len(wc.Tags)
+	}
+	if activeTagsCount == 0 {
+		activeTagsCount = len(defaultTagPreset)
+	}
+
 	labelsByPage := make(map[string]label.Labels)
 	for _, l := range wc.Labels {
 		if l.Page != "" {
+			if l.Tag <= 0 || l.Tag > activeTagsCount {
+				l.Tag = 1
+			}
 			labelsByPage[l.Page] = append(labelsByPage[l.Page], l)
 		}
 	}
@@ -741,4 +800,118 @@ func (c *comicAgentImpl) ImportLp(workDir string, order uint, filePath string) e
 // NewComicAgent creates and returns a new instance of ComicAgent.
 func NewComicAgent() ComicAgent {
 	return new(comicAgentImpl)
+}
+
+type tempPageMeta struct {
+	ID        uint
+	ChapterID uint
+	Labels    string
+}
+
+func migrateLabels(db *gorm.DB) error {
+	if !db.Migrator().HasTable(&comicdb.PageMeta{}) {
+		return nil
+	}
+
+	var records []tempPageMeta
+	if err := db.Table("page_meta").Select("id, chapter_id, labels").Find(&records).Error; err != nil {
+		return nil
+	}
+
+	var chapters []comicdb.Chapter
+	if err := db.Find(&chapters).Error; err != nil {
+		return err
+	}
+
+	chapterTags := make(map[uint][]string)
+	for _, ch := range chapters {
+		chapterTags[ch.ID] = ch.Tags
+	}
+
+	type compatLabel struct {
+		Pos        [2]float32 `json:"pos"`
+		Tag        any        `json:"tag"`
+		Text       string     `json:"text"`
+		Translated bool       `json:"translated"`
+		Reviewed   bool       `json:"reviewed"`
+		Page       string     `json:"page"`
+	}
+
+	for _, record := range records {
+		if record.Labels == "" || record.Labels == "null" || record.Labels == "[]" {
+			continue
+		}
+
+		var labels []compatLabel
+		if err := json.Unmarshal([]byte(record.Labels), &labels); err != nil {
+			continue
+		}
+
+		modified := false
+		tags := chapterTags[record.ChapterID]
+		activeTagsCount := len(tags)
+		if activeTagsCount == 0 {
+			activeTagsCount = len(defaultTagPreset)
+		}
+
+		updatedLabels := make([]label.Label, len(labels))
+		for idx, l := range labels {
+			var tagIdx int
+			switch v := l.Tag.(type) {
+			case string:
+				found := false
+				for i, t := range tags {
+					if t == v {
+						tagIdx = i + 1
+						found = true
+						break
+					}
+				}
+				if !found {
+					for i, t := range defaultTagPreset {
+						if t == v {
+							tagIdx = i + 1
+							found = true
+							break
+						}
+					}
+				}
+				if !found {
+					tagIdx = 1
+				}
+				modified = true
+			case float64:
+				tagIdx = int(v)
+			default:
+				tagIdx = 1
+				modified = true
+			}
+
+			if tagIdx <= 0 || tagIdx > activeTagsCount {
+				tagIdx = 1
+				modified = true
+			}
+
+			updatedLabels[idx] = label.Label{
+				Pos:        l.Pos,
+				Tag:        tagIdx,
+				Text:       l.Text,
+				Translated: l.Translated,
+				Reviewed:   l.Reviewed,
+				Page:       l.Page,
+			}
+		}
+
+		if modified {
+			updatedJSON, err := json.Marshal(updatedLabels)
+			if err != nil {
+				return err
+			}
+			if err := db.Table("page_meta").Where("id = ?", record.ID).Update("labels", string(updatedJSON)).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }

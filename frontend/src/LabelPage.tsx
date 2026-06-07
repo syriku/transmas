@@ -586,10 +586,9 @@ const LabelPage: React.FC = () => {
   const saveLabelsToBackend = async (filename: string, instances: TagInstance[]) => {
     if (!projectName || chapterOrder === null) return
     const backendLabels = instances.map((inst) => {
-      const tag = tags[inst.tagIndex] || ''
       return {
         pos: [inst.x, inst.y],
-        tag,
+        tag: inst.tagIndex + 1,
         text: inst.text || '',
         translated: inst.translated || false,
         reviewed: inst.reviewed || false,
@@ -715,8 +714,8 @@ const LabelPage: React.FC = () => {
       currentMetas.forEach((meta) => {
         if (meta.labels) {
           tagInstancesMap[meta.filename] = meta.labels.map((l: any, idx: number) => {
-            let tagIndex = currentTags.indexOf(l.tag)
-            if (tagIndex === -1) {
+            let tagIndex = typeof l.tag === 'number' ? l.tag - 1 : currentTags.indexOf(l.tag)
+            if (tagIndex < 0 || tagIndex >= currentTags.length) {
               tagIndex = 0
             }
             return {
