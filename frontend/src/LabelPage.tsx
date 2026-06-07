@@ -751,8 +751,8 @@ const LabelPage: React.FC = () => {
   }, [projectName, chapterOrder])
 
   const translateTag = (tag: string) => {
-    if (tag === 'inside') return t('tagInside', '框内')
-    if (tag === 'outside') return t('tagOutside', '框外')
+    if (tag === 'inside' || tag === '框内') return t('tagInside', '框内')
+    if (tag === 'outside' || tag === '框外') return t('tagOutside', '框外')
     return tag
   }
 

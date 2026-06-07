@@ -5,7 +5,7 @@ export const EXPORT_SUFFIXES_EN = ['_translated', '_reviewed', '_exported'] as c
 export const EXPORT_SUFFIXES_ZH = ['_已翻译', '_已校对', '_导出'] as const
 export const EXPORT_SUFFIXES = [...EXPORT_SUFFIXES_EN, ...EXPORT_SUFFIXES_ZH]
 
-export const PRESET_TAGS_RAW = ['inside', 'outside'] as const
+export const PRESET_TAGS_RAW = ['框内', '框外'] as const
 export const PRESET_TAGS_EN = ['Inside', 'Outside'] as const
 export const PRESET_TAGS_ZH = ['框内', '框外'] as const
 

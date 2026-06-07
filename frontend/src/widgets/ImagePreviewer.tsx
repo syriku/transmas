@@ -240,8 +240,8 @@ const ImagePreviewer = forwardRef<ImagePreviewerRef, ImagePreviewerProps>(
     const { t } = useTranslation()
 
     const translateTagName = (name: string) => {
-      if (name === 'inside') return t('tagInside', '框内')
-      if (name === 'outside') return t('tagOutside', '框外')
+      if (name === 'inside' || name === '框内') return t('tagInside', '框内')
+      if (name === 'outside' || name === '框外') return t('tagOutside', '框外')
       return name
     }
 

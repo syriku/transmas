@@ -1,8 +1,8 @@
 package comicagents
 
 const (
-	TagInside  = "inside"
-	TagOutside = "outside"
+	TagInside  = "框内"
+	TagOutside = "框外"
 )
 
 var defaultTagPreset = [2]string{TagInside, TagOutside}

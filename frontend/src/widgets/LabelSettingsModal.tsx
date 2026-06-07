@@ -30,8 +30,8 @@ const LabelSettingsModal: React.FC<Props> = ({
   const [glossary, setGlossary] = useState<GlossaryEntry[]>([])
   const [localTags, setLocalTags] = useState<string[]>(() =>
     tags.map((tag) => {
-      if (tag === 'inside') return t('tagInside', 'Inside')
-      if (tag === 'outside') return t('tagOutside', 'Outside')
+      if (tag === 'inside' || tag === '框内') return t('tagInside', 'Inside')
+      if (tag === 'outside' || tag === '框外') return t('tagOutside', 'Outside')
       return tag
     }),
   )
@@ -44,8 +44,8 @@ const LabelSettingsModal: React.FC<Props> = ({
         setGlossary(glossaryData || [])
         // Map backend raw tags to display tags
         const displayTags = (tagsData || []).map((tag) => {
-          if (tag === 'inside') return t('tagInside', 'Inside')
-          if (tag === 'outside') return t('tagOutside', 'Outside')
+          if (tag === 'inside' || tag === '框内') return t('tagInside', 'Inside')
+          if (tag === 'outside' || tag === '框外') return t('tagOutside', 'Outside')
           return tag
         })
         setLocalTags(displayTags)
@@ -63,10 +63,10 @@ const LabelSettingsModal: React.FC<Props> = ({
       .map((tVal) => {
         const trimmed = tVal.trim()
         if (trimmed === t('tagInside', 'Inside') || trimmed === 'Inside' || trimmed === '框内') {
-          return 'inside'
+          return '框内'
         }
         if (trimmed === t('tagOutside', 'Outside') || trimmed === 'Outside' || trimmed === '框外') {
-          return 'outside'
+          return '框外'
         }
         return trimmed
       })
