@@ -112,7 +112,7 @@ function main() {
   // 1. Run go-licenses save
   console.log("Running go-licenses save...");
   runCommand(
-    `~/go/bin/go-licenses save . --save_path="${GO_TARGET_DIR}" --force`,
+    `go run github.com/google/go-licenses@latest save . --save_path="${GO_TARGET_DIR}" --force`,
     rootDir,
   );
 
