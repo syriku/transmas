@@ -13,23 +13,20 @@ vars:
 
   # Docker image for cross-compilation with CGO (used when CGO_ENABLED=1 on non-Windows)
   CROSS_IMAGE: wails-cross
+  ARCH: '{{.ARCH | default "amd64"}}'
 
 tasks:
   build:
     summary: Builds the application for Windows
     cmds:
-      # Auto-detect CGO: if CGO_ENABLED=1, use Docker; otherwise use native Go cross-compile
-      - task: '{{if and (ne OS "windows") (eq .CGO_ENABLED "1")}}build:docker{{else}}build:native{{end}}'
+      - task: '{{if eq .USE_DOCKER "true"}}build:docker{{else}}build:native{{end}}'
         vars:
           ARCH: '{{.ARCH}}'
           DEV: '{{.DEV}}'
           EXTRA_TAGS: '{{.EXTRA_TAGS}}'
-    vars:
-      # Default to CGO_ENABLED=0 if not explicitly set
-      CGO_ENABLED: '{{.CGO_ENABLED | default "0"}}'
 
   build:native:
-    summary: Builds the application using native Go cross-compilation
+    summary: Builds the application for Windows using zig cc (CGO cross-compilation)
     internal: true
     deps:
       - task: common:go:mod:tidy
@@ -44,6 +41,7 @@ tasks:
       - task: generate:syso
         vars:
           ARCH: '{{.ARCH}}'
+      - chmod +x "{{.ROOT_DIR}}/build/scripts/zcc-windows-{{.ARCH}}"
       - go build {{.BUILD_FLAGS}} -o "{{.BIN_DIR}}/{{.APP_NAME}}.exe"
       - cmd: powershell Remove-item *.syso
         platforms: [windows]
@@ -53,8 +51,10 @@ tasks:
       BUILD_FLAGS: '{{if eq .DEV "true"}}{{if .EXTRA_TAGS}}-tags {{.EXTRA_TAGS}} {{end}}-buildvcs=false -gcflags=all="-l"{{else}}-tags production{{if .EXTRA_TAGS}},{{.EXTRA_TAGS}}{{end}} -trimpath -buildvcs=false -ldflags="-w -s -H windowsgui"{{end}}'
     env:
       GOOS: windows
-      CGO_ENABLED: '{{.CGO_ENABLED | default "0"}}'
-      GOARCH: '{{.ARCH | default ARCH}}'
+      CGO_ENABLED: '1'
+      CGO_CFLAGS: '-w'
+      GOARCH: '{{.ARCH}}'
+      CC: '{{.ROOT_DIR}}/build/scripts/zcc-windows-{{.ARCH}}'
 
   build:docker:
     summary: Cross-compiles for Windows using Docker with Zig (for CGO builds on non-Windows)
@@ -73,12 +73,11 @@ tasks:
       - task: generate:syso
         vars:
           ARCH: '{{.ARCH}}'
-      - docker run --rm -v "{{.ROOT_DIR}}:/app" {{.GO_CACHE_MOUNT}} {{.REPLACE_MOUNTS}} -e APP_NAME="{{.APP_NAME}}" {{if .EXTRA_TAGS}}-e EXTRA_TAGS="{{.EXTRA_TAGS}}"{{end}} {{.CROSS_IMAGE}} windows {{.DOCKER_ARCH}}
+      - docker run --rm -v "{{.ROOT_DIR}}:/app" {{.GO_CACHE_MOUNT}} {{.REPLACE_MOUNTS}} -e APP_NAME="{{.APP_NAME}}" {{if .EXTRA_TAGS}}-e EXTRA_TAGS="{{.EXTRA_TAGS}}"{{end}} {{.CROSS_IMAGE}} windows {{.ARCH}}
       - docker run --rm -v "{{.ROOT_DIR}}:/app" alpine chown -R $(id -u):$(id -g) /app/bin
       - rm -f *.syso
-      - cp bin/{{.APP_NAME}}-windows-amd64.exe bin/{{.APP_NAME}}.exe
+      - cp bin/{{.APP_NAME}}-windows-{{.ARCH}}.exe bin/{{.APP_NAME}}.exe
     vars:
-      DOCKER_ARCH: '{{.ARCH | default "amd64"}}'
       # Mount Go module cache for faster builds
       GO_CACHE_MOUNT:
         sh: 'echo "-v ${GOPATH:-$HOME/go}/pkg/mod:/go/pkg/mod"'
@@ -101,6 +100,9 @@ tasks:
     summary: Packages the application
     cmds:
       - task: '{{if eq (.FORMAT | default "nsis") "msix"}}create:msix:package{{else}}create:nsis:installer{{end}}'
+        vars:
+          ARCH: '{{.ARCH}}'
+          USE_DOCKER: '{{.USE_DOCKER}}'
     vars:
       FORMAT: '{{.FORMAT | default "nsis"}}'
 
@@ -110,13 +112,16 @@ tasks:
     cmds:
       - wails3 generate syso -arch {{.ARCH}} -icon windows/icon.ico -manifest windows/wails.exe.manifest -info windows/info.json -out ../wails_windows_{{.ARCH}}.syso
     vars:
-      ARCH: '{{.ARCH | default ARCH}}'
+      ARCH: '{{.ARCH}}'
 
   create:nsis:installer:
     summary: Creates an NSIS installer
     dir: build/windows/nsis
     deps:
       - task: build
+        vars:
+          ARCH: '{{.ARCH}}'
+          USE_DOCKER: '{{.USE_DOCKER}}'
     cmds:
       # Create the Microsoft WebView2 bootstrapper if it doesn't exist
       - wails3 generate webview2bootstrapper -dir "{{.ROOT_DIR}}/build/windows/nsis"
@@ -127,13 +132,16 @@ tasks:
         makensis -DARG_WAILS_{{.ARG_FLAG}}_BINARY="{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}.exe" project.nsi
         {{end}}
     vars:
-      ARCH: '{{.ARCH | default ARCH}}'
+      ARCH: '{{.ARCH}}'
       ARG_FLAG: '{{if eq .ARCH "amd64"}}AMD64{{else}}ARM64{{end}}'
 
   create:msix:package:
     summary: Creates an MSIX package
     deps:
       - task: build
+        vars:
+          ARCH: '{{.ARCH}}'
+          USE_DOCKER: '{{.USE_DOCKER}}'
     cmds:
       - |-
         wails3 tool msix \
@@ -146,7 +154,7 @@ tasks:
           {{if .PUBLISHER}}--publisher "{{.PUBLISHER}}"{{end}} \
           {{if .USE_MSIX_TOOL}}--use-msix-tool{{else}}--use-makeappx{{end}}
     vars:
-      ARCH: '{{.ARCH | default ARCH}}'
+      ARCH: '{{.ARCH}}'
       CERT_PATH: '{{.CERT_PATH | default ""}}'
       PUBLISHER: '{{.PUBLISHER | default ""}}'
       USE_MSIX_TOOL: '{{.USE_MSIX_TOOL | default "false"}}'

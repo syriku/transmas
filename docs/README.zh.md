@@ -46,22 +46,41 @@ task licenses:collect
 task package
 ```
 
-### 3. 基于 Docker 的 Windows 打包（交叉编译）
-由于项目使用了 CGO，在 macOS/Linux 等非 Windows 平台交叉编译 Windows 版本需要使用 Docker 环境。
+### 3. Windows 打包与交叉编译
 
-1. **构建/配置编译镜像**：
-   ```bash
-   task setup:docker
-   ```
-2. **构建并打包 Windows 版本 (amd64)**：
-   ```bash
-   task windows:package CGO_ENABLED=1
-   ```
-3. **在 Apple Silicon (ARM) 架构的 Mac 上打包**：
-   如果您的主机是 ARM 架构，必须明确指定目标架构 `ARCH=amd64`，否则 NSIS 会将程序打包为 `arm64` 版本：
-   ```bash
-   task windows:package CGO_ENABLED=1 ARCH=amd64
-   ```
+由于项目启用了 CGO，编译 Windows 版本需要 CGO 兼容的工具链（具体为 `zig`）。您可以选择使用本地安装的 `zig` 工具链，或者通过 Docker 容器进行编译。
+
+#### 3.1 本地编译前提条件（推荐）
+在您的宿主机上安装 `zig`（推荐 v0.14.0）。安装完成后，编译任务将自动调用本地的 `zig cc` 包装脚本为 Windows 进行交叉编译。
+
+#### 3.2 Docker 编译前提条件
+如果您不想在本地安装 `zig`，可以使用 Docker 进行交叉编译。首先，构建交叉编译所需的 Docker 镜像：
+```bash
+task setup:docker
+```
+
+#### 3.3 默认行为与自定义参数
+- **默认架构**：目标架构默认为 `amd64` (x86_64)，而不是跟随宿主机的架构。
+- **默认编译方式**：默认使用本地的 `zig` 进行本地交叉编译。
+
+#### 3.4 打包命令
+* **标准 Windows 打包（使用本地 Zig，目标架构为 amd64）**：
+  ```bash
+  task package:windows
+  ```
+* **指定目标架构（例如 arm64）**：
+  ```bash
+  task package:windows ARCH=arm64
+  ```
+* **强制使用 Docker 编译**：
+  如果您的本地没有安装 `zig`，可以强制使用 Docker 镜像进行编译：
+  ```bash
+  task package:windows USE_DOCKER=true
+  ```
+* **强制使用 Docker 编译并指定目标架构**：
+  ```bash
+  task package:windows USE_DOCKER=true ARCH=arm64
+  ```
 
 ## 许可证
 

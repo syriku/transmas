@@ -33,8 +33,8 @@ tasks:
     cmds:
       - task: windows:package
         vars:
-          CGO_ENABLED: "1"
-          ARCH: "{{.ARCH | default ARCH}}"
+          ARCH: "{{.ARCH | default \"amd64\"}}"
+          USE_DOCKER: "{{.USE_DOCKER | default \"false\"}}"
 
   run:
     summary: Runs the application
