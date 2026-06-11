@@ -46,42 +46,41 @@ To package the production binary for your current operating system:
 task package
 ```
 
-### 3. Docker-Based Windows Packaging (Cross-Compilation)
-Since the application uses CGO, cross-compiling for Windows from macOS/Linux requires a Docker environment.
+### 3. Windows Packaging & Cross-Compilation
 
-#### Prerequisites
-Build and configure the cross-compilation Docker image using:
+Since the application has CGO enabled, Windows builds require a CGO-compatible toolchain (specifically `zig`). You can compile either using your local `zig` installation or via a Docker container.
+
+#### 3.1 Prerequisite for Native Compilation (Recommended)
+Install `zig` (v0.14.0 is recommended) on your host machine. Once installed, the build tasks will automatically utilize local `zig cc` wrapper scripts to cross-compile for Windows.
+
+#### 3.2 Prerequisite for Docker Compilation
+If you prefer not to install `zig` locally, you can cross-compile via Docker. First, build the cross-compilation Docker image:
 ```bash
 task setup:docker
 ```
-*(Note: If you are building on a Windows host, Docker is not required as long as you have a local CGO-compatible GCC compiler, though Docker is still highly recommended.)*
 
-#### Recommended Method (Simplified Packaging)
-You can run the unified packaging task:
-```bash
-task package:windows
-```
-This command automatically:
-1. Collects and generates dependency licenses.
-2. Cross-compiles the application with `CGO_ENABLED=1`.
-3. Automatically determines the final installation package architecture based on your host system's architecture (e.g., `amd64` or `arm64`).
+#### 3.3 Default Behavior & Customization
+- **Default Architecture**: The target architecture defaults to `amd64` (x86_64) instead of following your host machine's architecture.
+- **Default Compile Mode**: Local native compilation with `zig` is used by default.
 
-#### Manual / Advanced Packaging
-If you need to perform the steps individually or customize the target architecture:
-1. **Collect Dependency Licenses**:
-   ```bash
-   task licenses:collect
-   ```
-2. **Trigger the Windows Packaging**:
-   Run the packaging command with `CGO_ENABLED=1` passed as a task variable:
-   ```bash
-   task windows:package CGO_ENABLED=1
-   ```
-3. **Specify Target Architecture (Optional)**:
-   By default, the architecture is determined by the host. If you want to force a specific target architecture (e.g., building `amd64` on an Apple Silicon Mac):
-   ```bash
-   task windows:package CGO_ENABLED=1 ARCH=amd64
-   ```
+#### 3.4 Packaging Commands
+* **Standard Windows Packaging (Native Zig, Target: amd64)**:
+  ```bash
+  task package:windows
+  ```
+* **Specify Architecture (e.g. arm64)**:
+  ```bash
+  task package:windows ARCH=arm64
+  ```
+* **Force Docker Compilation**:
+  If you do not have `zig` installed locally, you can force Docker-based compilation:
+  ```bash
+  task package:windows USE_DOCKER=true
+  ```
+* **Force Docker Compilation with Specific Architecture**:
+  ```bash
+  task package:windows USE_DOCKER=true ARCH=arm64
+  ```
 
 ## License
 
